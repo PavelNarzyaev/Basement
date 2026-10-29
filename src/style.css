@@ -10,4 +10,15 @@ canvas {
   display: block;
   width: 100%;
   height: 100dvh;
+  touch-action: none;
+}
+
+.scene-status {
+  position: fixed;
+  inset: 1rem 1rem auto;
+  margin: 0;
+  padding: 1rem;
+  color: #f5eee4;
+  background: #202632;
+  font: 1rem/1.5 system-ui, sans-serif;
 }
