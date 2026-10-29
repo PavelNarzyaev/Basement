@@ -1,0 +1,13 @@
+:root {
+  background: #151a24;
+}
+
+body {
+  margin: 0;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100dvh;
+}
