@@ -14,6 +14,7 @@ canvas {
 }
 
 .scene-status {
+  pointer-events: none;
   position: fixed;
   inset: 1rem 1rem auto;
   margin: 0;
