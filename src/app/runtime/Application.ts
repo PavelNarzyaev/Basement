@@ -1,12 +1,23 @@
-import { PerspectiveCamera, WebGLRenderer } from 'three';
-import { DesktopInput } from '../controls/DesktopInput';
-import { ThirdPersonPlayer } from '../player/ThirdPersonPlayer';
-import type { IScene } from '../scenes/contracts/IScene';
+import { PerspectiveCamera, Vector3, WebGLRenderer } from 'three';
+import type { ICameraController } from '../../camera/contracts/ICameraController';
+import { ThirdPersonCameraController } from '../../camera/runtime/ThirdPersonCameraController';
+import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
+import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
+import type { IPlayerInput } from '../../input/contracts/IPlayerInput';
+import { DesktopInput } from '../../input/runtime/DesktopInput';
+import type { IPlayer } from '../../player/contracts/IPlayer';
+import { Player } from '../../player/runtime/Player';
+import type { IScene } from '../../scenes/contracts/IScene';
 
 export class Application {
   private readonly renderer: WebGLRenderer;
   private readonly camera = new PerspectiveCamera(50, 1, 0.1, 100);
-  private player: ThirdPersonPlayer | undefined;
+  private player: IPlayer | undefined;
+  private input: IPlayerInput | undefined;
+  private cameraController: ICameraController | undefined;
+  private collisionWorld: ICollisionWorld | undefined;
+  private readonly movement = new Vector3();
+  private readonly worldUp = new Vector3(0, 1, 0);
   private previousTime: number | undefined;
   private readonly status = document.createElement('p');
   private isDisposed = false;
@@ -32,7 +43,7 @@ export class Application {
     this.isDisposed = true;
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();
-    this.player?.dispose();
+    this.disposeGameplay();
     this.status.remove();
     this.scene.dispose();
     this.renderer.dispose();
@@ -46,21 +57,30 @@ export class Application {
       this.camera.near = 0.05;
       this.camera.far = 150;
       this.camera.updateProjectionMatrix();
-      const input = new DesktopInput(this.canvas);
-      try {
-        this.player = new ThirdPersonPlayer(model, this.camera, input);
-      } catch (error) {
-        input.dispose();
-        throw error;
-      }
-      this.scene.scene.add(this.player.mesh);
+      this.collisionWorld = new CollisionWorld(model);
+      this.player = new Player(this.collisionWorld);
+      this.cameraController = new ThirdPersonCameraController(this.camera, this.collisionWorld);
+      this.cameraController.update(this.player.object.position);
+      this.input = new DesktopInput(this.canvas);
+      this.scene.scene.add(this.player.object);
       this.status.textContent = 'Клик по сцене — начать · WASD — движение · Мышь — камера · Esc — освободить курсор';
     } catch (error) {
       if (this.isDisposed) return;
+      this.disposeGameplay();
       this.status.textContent = 'Не удалось запустить сцену. Подробности ошибки — в консоли браузера.';
       this.status.setAttribute('role', 'alert');
       console.error('Scene initialization failed:', error);
     }
+  }
+
+  private disposeGameplay(): void {
+    this.input?.dispose();
+    this.player?.dispose();
+    this.collisionWorld?.dispose();
+    this.input = undefined;
+    this.player = undefined;
+    this.cameraController = undefined;
+    this.collisionWorld = undefined;
   }
 
   private readonly resize = (): void => {
@@ -74,7 +94,13 @@ export class Application {
   private readonly animate = (time: number): void => {
     const delta = this.previousTime === undefined ? 0 : (time - this.previousTime) / 1000;
     this.previousTime = time;
-    this.player?.update(delta);
+    if (this.input && this.player && this.cameraController) {
+      const input = this.input.read();
+      this.cameraController.rotate(input.lookX, input.lookY);
+      this.movement.set(input.movementX, 0, input.movementZ).applyAxisAngle(this.worldUp, this.cameraController.yaw);
+      this.player.update(delta, this.movement);
+      this.cameraController.update(this.player.object.position);
+    }
     this.renderer.render(this.scene.scene, this.camera);
   };
 }

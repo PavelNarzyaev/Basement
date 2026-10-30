@@ -1,4 +1,4 @@
-import { Application } from './app/Application';
+import { Application } from './app/runtime/Application';
 import { Object3DDisposer } from './disposer/runtime/Object3DDisposer';
 import { BasementScene } from './scenes/runtime/BasementScene';
 import './style.css';

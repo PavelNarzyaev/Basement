@@ -1,6 +1,7 @@
-import type { PlayerInput, PlayerInputState } from './PlayerInput';
+import type { IPlayerInput } from '../contracts/IPlayerInput';
+import type { IPlayerInputState } from '../contracts/IPlayerInputState';
 
-export class DesktopInput implements PlayerInput {
+export class DesktopInput implements IPlayerInput {
   private readonly keys = new Set<string>();
   private lookX = 0;
   private lookY = 0;
@@ -29,7 +30,7 @@ export class DesktopInput implements PlayerInput {
     }, options);
   }
 
-  read(): PlayerInputState {
+  read(): IPlayerInputState {
     const state = {
       movementX: Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA')),
       movementZ: Number(this.keys.has('KeyS')) - Number(this.keys.has('KeyW')),
