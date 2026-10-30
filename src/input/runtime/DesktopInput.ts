@@ -24,6 +24,10 @@ export class DesktopInput implements IPlayerInput {
     document.addEventListener('pointerlockchange', this.clear, options);
     document.addEventListener('mousemove', (event) => {
       if (document.pointerLockElement === canvas) {
+
+        // Work around Chromium's pointer-lock cursor-recentering bug by discarding oversized events.
+        if (Math.abs(event.movementX) > window.innerWidth / 3 || Math.abs(event.movementY) > window.innerHeight / 3) return;
+
         this.lookX += event.movementX;
         this.lookY += event.movementY;
       }
