@@ -4,10 +4,15 @@ import { ThirdPersonCameraController } from '../../camera/runtime/ThirdPersonCam
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
 import type { IPlayerInput } from '../../input/contracts/IPlayerInput';
+import { ControlMode } from '../../input/contracts/ControlMode';
 import { DesktopInput } from '../../input/runtime/DesktopInput';
+import { VirtualJoystick } from '../../input/runtime/VirtualJoystick';
+import { TouchInput } from '../../input/runtime/TouchInput';
 import type { IPlayer } from '../../player/contracts/IPlayer';
 import { Player } from '../../player/runtime/Player';
 import type { IScene } from '../../scenes/contracts/IScene';
+import type { StartupSettingsDto } from '../../startup/contracts/StartupSettingsDto';
+import { StartupSettingsDialog } from '../../startup/runtime/StartupSettingsDialog';
 
 export class Application {
   private readonly renderer: WebGLRenderer;
@@ -22,9 +27,13 @@ export class Application {
   private readonly status = document.createElement('p');
   private isDisposed = false;
   private readonly resizeObserver: ResizeObserver;
+  private readonly joystick: VirtualJoystick;
+  private readonly startupSettingsDialog: StartupSettingsDialog;
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly scene: IScene) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
+    this.joystick = new VirtualJoystick(canvas);
+    this.startupSettingsDialog = new StartupSettingsDialog(canvas, this.startGameplay);
     this.camera.position.set(2.5, 1.8, 3.5);
     this.camera.lookAt(0, 0, 0);
     this.status.className = 'scene-status';
@@ -44,6 +53,8 @@ export class Application {
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();
     this.disposeGameplay();
+    this.startupSettingsDialog.dispose();
+    this.joystick.dispose();
     this.status.remove();
     this.scene.dispose();
     this.renderer.dispose();
@@ -63,9 +74,9 @@ export class Application {
       const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
       this.cameraController = new ThirdPersonCameraController(this.camera, this.collisionWorld, cameraYaw);
       this.cameraController.update(this.player.object.position);
-      this.input = new DesktopInput(this.canvas);
       this.scene.scene.add(this.player.object);
-      this.status.textContent = 'Клик по сцене — начать · WASD — движение · Мышь — камера · Esc — освободить курсор';
+      this.status.hidden = true;
+      this.startupSettingsDialog.open();
     } catch (error) {
       if (this.isDisposed) return;
       this.disposeGameplay();
@@ -85,12 +96,23 @@ export class Application {
     this.collisionWorld = undefined;
   }
 
+  private readonly startGameplay = (settings: StartupSettingsDto): void => {
+    if (settings.controlMode === ControlMode.Touch) {
+      this.joystick.show();
+      this.input = new TouchInput(this.canvas, this.joystick);
+    } else {
+      this.input = new DesktopInput(this.canvas);
+    }
+  };
+
   private readonly resize = (): void => {
     const { width, height } = this.canvas.getBoundingClientRect();
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(width, height, false);
+    this.joystick.resize(width, height);
+    this.startupSettingsDialog.resize(width, height);
   };
 
   private readonly animate = (time: number): void => {
@@ -104,5 +126,7 @@ export class Application {
       this.cameraController.update(this.player.object.position);
     }
     this.renderer.render(this.scene.scene, this.camera);
+    this.joystick.render(this.renderer);
+    this.startupSettingsDialog.render(this.renderer);
   };
 }
