@@ -8,6 +8,7 @@ import {
 } from 'three';
 import type { BufferGeometry, Material, Object3D } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import type { IScene } from './contracts/IScene';
 
 export const basementModelUrl = `${import.meta.env.BASE_URL}models/basement/basement.glb`;
 
@@ -36,30 +37,31 @@ function disposeModel(model: Object3D): void {
   for (const geometry of geometries) geometry.dispose();
 }
 
-export function createBasementScene() {
-  const scene = new Scene();
-  scene.background = new Color('#151a24');
-  const hemisphereLight = new HemisphereLight('#dceaff', '#423024', 2);
-  const keyLight = new DirectionalLight('#fff1db', 3);
-  keyLight.position.set(3, 8, 5);
-  scene.add(hemisphereLight, keyLight);
-  let isDisposed = false;
+export class BasementScene implements IScene {
+  readonly scene = new Scene();
+  private isDisposed = false;
 
-  return {
-    scene,
-    async load() {
-      const model = await new GLTFLoader().loadAsync(basementModelUrl);
-      if (isDisposed) {
-        disposeModel(model.scene);
-        return;
-      }
-      scene.add(model.scene);
-      return model.scene;
-    },
-    dispose() {
-      isDisposed = true;
-      disposeModel(scene);
-      scene.clear();
-    },
-  };
+  constructor() {
+    this.scene.background = new Color('#151a24');
+    const hemisphereLight = new HemisphereLight('#dceaff', '#423024', 2);
+    const keyLight = new DirectionalLight('#fff1db', 3);
+    keyLight.position.set(3, 8, 5);
+    this.scene.add(hemisphereLight, keyLight);
+  }
+
+  async load(): Promise<Object3D | undefined> {
+    const model = await new GLTFLoader().loadAsync(basementModelUrl);
+    if (this.isDisposed) {
+      disposeModel(model.scene);
+      return;
+    }
+    this.scene.add(model.scene);
+    return model.scene;
+  }
+
+  dispose(): void {
+    this.isDisposed = true;
+    disposeModel(this.scene);
+    this.scene.clear();
+  }
 }

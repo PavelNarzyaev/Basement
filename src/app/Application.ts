@@ -1,19 +1,18 @@
 import { PerspectiveCamera, WebGLRenderer } from 'three';
 import { DesktopInput } from '../controls/DesktopInput';
 import { ThirdPersonPlayer } from '../player/ThirdPersonPlayer';
-import { createBasementScene } from '../scenes/createBasementScene';
+import type { IScene } from '../scenes/contracts/IScene';
 
 export class Application {
   private readonly renderer: WebGLRenderer;
   private readonly camera = new PerspectiveCamera(50, 1, 0.1, 100);
-  private readonly basementScene = createBasementScene();
   private player: ThirdPersonPlayer | undefined;
   private previousTime: number | undefined;
   private readonly status = document.createElement('p');
   private isDisposed = false;
   private readonly resizeObserver: ResizeObserver;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(private readonly canvas: HTMLCanvasElement, private readonly scene: IScene) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
     this.camera.position.set(2.5, 1.8, 3.5);
     this.camera.lookAt(0, 0, 0);
@@ -21,7 +20,7 @@ export class Application {
     this.status.setAttribute('role', 'status');
     this.status.textContent = 'Загрузка подвала…';
     document.body.append(this.status);
-    void this.loadBasement();
+    void this.loadScene();
 
     this.resizeObserver = new ResizeObserver(this.resize);
     this.resizeObserver.observe(canvas);
@@ -35,15 +34,15 @@ export class Application {
     this.resizeObserver.disconnect();
     this.player?.dispose();
     this.status.remove();
-    this.basementScene.dispose();
+    this.scene.dispose();
     this.renderer.dispose();
   }
 
-  private async loadBasement(): Promise<void> {
+  private async loadScene(): Promise<void> {
     try {
-      const model = await this.basementScene.load();
+      const model = await this.scene.load();
       if (this.isDisposed) return;
-      if (!model) throw new Error('Basement model was not loaded.');
+      if (!model) throw new Error('Scene model was not loaded.');
       this.camera.near = 0.05;
       this.camera.far = 150;
       this.camera.updateProjectionMatrix();
@@ -54,13 +53,13 @@ export class Application {
         input.dispose();
         throw error;
       }
-      this.basementScene.scene.add(this.player.mesh);
+      this.scene.scene.add(this.player.mesh);
       this.status.textContent = 'Клик по сцене — начать · WASD — движение · Мышь — камера · Esc — освободить курсор';
     } catch (error) {
       if (this.isDisposed) return;
       this.status.textContent = 'Не удалось запустить сцену. Подробности ошибки — в консоли браузера.';
       this.status.setAttribute('role', 'alert');
-      console.error('Basement initialization failed:', error);
+      console.error('Scene initialization failed:', error);
     }
   }
 
@@ -76,6 +75,6 @@ export class Application {
     const delta = this.previousTime === undefined ? 0 : (time - this.previousTime) / 1000;
     this.previousTime = time;
     this.player?.update(delta);
-    this.renderer.render(this.basementScene.scene, this.camera);
+    this.renderer.render(this.scene.scene, this.camera);
   };
 }
