@@ -1,4 +1,4 @@
-import { BoxGeometry, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import { CapsuleGeometry, Mesh, MeshStandardMaterial, Vector3 } from 'three';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IPlayer } from '../contracts/IPlayer';
@@ -6,10 +6,10 @@ import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
 
 export class Player implements IPlayer {
   private static readonly colliderRadius = 0.43;
-  private static readonly colliderHeight = 0.9;
+  private static readonly colliderHeight = 1.8;
   private static readonly fixedStep = 1 / 120;
 
-  readonly object: Mesh<BoxGeometry, MeshStandardMaterial>;
+  readonly object: Mesh<CapsuleGeometry, MeshStandardMaterial>;
   private readonly collider = new Capsule(
     new Vector3(0, Player.colliderRadius, 0),
     new Vector3(0, Player.colliderHeight - Player.colliderRadius, 0),
@@ -27,7 +27,10 @@ export class Player implements IPlayer {
     this.minimumHeight = world.bounds.min.y - 3;
     this.spawn = spawn.position.clone();
     this.spawnRotationY = spawn.rotationY;
-    this.object = new Mesh(new BoxGeometry(0.6, 0.6, 0.6), new MeshStandardMaterial({ color: '#e3a34c', roughness: 0.7 }));
+    this.object = new Mesh(
+      new CapsuleGeometry(Player.colliderRadius, Player.colliderHeight - 2 * Player.colliderRadius, 8, 16),
+      new MeshStandardMaterial({ color: '#e3a34c', roughness: 0.7 }),
+    );
     this.reset();
   }
 
