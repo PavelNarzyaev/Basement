@@ -1,15 +1,16 @@
 import { Mesh, Texture } from 'three';
 import type { BufferGeometry, Material, Object3D } from 'three';
+import type { IObject3DDisposer } from '../contracts/IObject3DDisposer';
 
-export class ModelResourceDisposer {
-  static dispose(model: Object3D): void {
+export class Object3DDisposer implements IObject3DDisposer {
+  dispose(object: Object3D): void {
     const geometries = new Set<BufferGeometry>();
     const materials = new Set<Material>();
     const textures = new Set<Texture>();
-    model.traverse((object) => {
-      if (object instanceof Mesh) {
-        geometries.add(object.geometry);
-        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+    object.traverse((descendant) => {
+      if (descendant instanceof Mesh) {
+        geometries.add(descendant.geometry);
+        for (const material of Array.isArray(descendant.material) ? descendant.material : [descendant.material]) {
           materials.add(material);
           for (const value of Object.values(material)) {
             if (value instanceof Texture) textures.add(value);
