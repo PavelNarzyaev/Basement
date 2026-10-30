@@ -1,5 +1,5 @@
 import { Application } from './app/Application';
-import { BasementScene } from './scenes/BasementScene';
+import { BasementScene } from './scenes/runtime/BasementScene';
 import './style.css';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
