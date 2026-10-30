@@ -58,8 +58,10 @@ export class Application {
       this.camera.far = 150;
       this.camera.updateProjectionMatrix();
       this.collisionWorld = new CollisionWorld(model);
-      this.player = new Player(this.collisionWorld);
-      this.cameraController = new ThirdPersonCameraController(this.camera, this.collisionWorld);
+      this.player = new Player(this.collisionWorld, this.scene.playerSpawn);
+      // The orbit angle points from the target to the camera, opposite the player's facing direction.
+      const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
+      this.cameraController = new ThirdPersonCameraController(this.camera, this.collisionWorld, cameraYaw);
       this.cameraController.update(this.player.object.position);
       this.input = new DesktopInput(this.canvas);
       this.scene.scene.add(this.player.object);

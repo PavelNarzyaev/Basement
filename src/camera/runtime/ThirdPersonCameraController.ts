@@ -8,10 +8,12 @@ export class ThirdPersonCameraController implements ICameraController {
   private readonly direction = new Vector3();
   private readonly ray = new Ray();
   private readonly sphere = new Sphere(new Vector3(), 0.18);
-  private horizontalAngle = 0;
+  private horizontalAngle: number;
   private pitch = 0.25;
 
-  constructor(private readonly camera: PerspectiveCamera, private readonly world: ICollisionWorld) {}
+  constructor(private readonly camera: PerspectiveCamera, private readonly world: ICollisionWorld, initialYaw = 0) {
+    this.horizontalAngle = initialYaw;
+  }
 
   get yaw(): number {
     return this.horizontalAngle;

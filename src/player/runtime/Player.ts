@@ -2,7 +2,7 @@ import { BoxGeometry, Mesh, MeshStandardMaterial, Vector3 } from 'three';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IPlayer } from '../contracts/IPlayer';
-import { PlayerSpawnFinder } from './PlayerSpawnFinder';
+import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
 
 export class Player implements IPlayer {
   private static readonly colliderRadius = 0.43;
@@ -16,15 +16,17 @@ export class Player implements IPlayer {
     Player.colliderRadius,
   );
   private readonly spawn: Vector3;
+  private readonly spawnRotationY: number;
   private readonly velocity = new Vector3();
   private readonly movement = new Vector3();
   private readonly displacement = new Vector3();
   private readonly minimumHeight: number;
   private accumulator = 0;
 
-  constructor(private readonly world: ICollisionWorld) {
+  constructor(private readonly world: ICollisionWorld, spawn: PlayerSpawnDto) {
     this.minimumHeight = world.bounds.min.y - 3;
-    this.spawn = new PlayerSpawnFinder().find(world, this.collider);
+    this.spawn = spawn.position.clone();
+    this.spawnRotationY = spawn.rotationY;
     this.object = new Mesh(new BoxGeometry(0.6, 0.6, 0.6), new MeshStandardMaterial({ color: '#e3a34c', roughness: 0.7 }));
     this.reset();
   }
@@ -67,6 +69,7 @@ export class Player implements IPlayer {
     this.collider.end.copy(this.spawn);
     this.collider.end.y += Player.colliderHeight - Player.colliderRadius;
     this.velocity.set(0, 0, 0);
+    this.object.rotation.y = this.spawnRotationY;
     this.collider.getCenter(this.object.position);
   }
 }
