@@ -25,3 +25,14 @@ Follow the fail-fast principle when writing code. Do not introduce defensive che
 - Follow the naming conventions already used in the project. In TypeScript, use `PascalCase` for classes, interfaces, and type aliases, and `camelCase` for functions, methods, properties, variables, and parameters.
 - End every source file with exactly one newline.
 - Add comments only when they explain non-obvious behavior, side effects, or risks that the code itself cannot make clear.
+
+## Module Architecture
+
+- Organize application code into module folders directly under `src`.
+- Each module may contain `contracts`, `runtime`, and `tests` folders. Create these folders only when needed.
+- Place implementation classes in `runtime`. Each implementation TypeScript file must export exactly one class, and its filename must match the class name (for example, `runtime/BasementScene.ts` exports `BasementScene`). Keep implementation behavior in class methods rather than standalone functions.
+- Place public contracts in `contracts`: interfaces, data transfer objects (DTOs), type aliases, enums, and constants. Contracts describe data and APIs; they must not contain application behavior or depend on runtime implementations.
+- Declare each interface in a separate file. Interface names must start with `I` and use `PascalCase`; the filename must match the interface name (for example, `contracts/IScene.ts`).
+- Give each DTO, type alias, and enum its own file named after the exported declaration. Keep closely related constants in a descriptively named constants file. DTO classes contain data only and follow the one-class-per-file rule.
+- Place module tests in `tests`. Test files are exempt from the exported-class rule and use descriptive names ending in `.test.ts`.
+- Application entry points such as `src/main.ts` and tool configuration files are exempt from the module class layout.
