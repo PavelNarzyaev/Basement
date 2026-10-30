@@ -1,5 +1,5 @@
 import type { IPlayerInput } from '../contracts/IPlayerInput';
-import type { IPlayerInputState } from '../contracts/IPlayerInputState';
+import { PlayerInputStateDto } from '../contracts/PlayerInputStateDto';
 
 export class DesktopInput implements IPlayerInput {
   private readonly keys = new Set<string>();
@@ -30,13 +30,13 @@ export class DesktopInput implements IPlayerInput {
     }, options);
   }
 
-  read(): IPlayerInputState {
-    const state = {
-      movementX: Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA')),
-      movementZ: Number(this.keys.has('KeyS')) - Number(this.keys.has('KeyW')),
-      lookX: this.lookX * 0.0025,
-      lookY: this.lookY * 0.0025,
-    };
+  read(): PlayerInputStateDto {
+    const state = new PlayerInputStateDto(
+      Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA')),
+      Number(this.keys.has('KeyS')) - Number(this.keys.has('KeyW')),
+      this.lookX * 0.0025,
+      this.lookY * 0.0025,
+    );
     this.lookX = 0;
     this.lookY = 0;
     return state;

@@ -1,7 +1,7 @@
-import type { IPlayerInputState } from './IPlayerInputState';
+import type { PlayerInputStateDto } from './PlayerInputStateDto';
 
 export interface IPlayerInput {
   /** Reads the current state and consumes accumulated look movement. */
-  read(): IPlayerInputState;
+  read(): PlayerInputStateDto;
   dispose(): void;
 }

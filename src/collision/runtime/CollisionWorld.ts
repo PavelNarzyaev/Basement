@@ -2,7 +2,7 @@ import { Box3 } from 'three';
 import type { Object3D, Ray, Sphere } from 'three';
 import type { Capsule } from 'three/addons/math/Capsule.js';
 import { Octree } from 'three/addons/math/Octree.js';
-import type { ICollision } from '../contracts/ICollision';
+import { CollisionDto } from '../contracts/CollisionDto';
 import type { ICollisionWorld } from '../contracts/ICollisionWorld';
 
 export class CollisionWorld implements ICollisionWorld {
@@ -14,8 +14,9 @@ export class CollisionWorld implements ICollisionWorld {
     this.bounds = new Box3().setFromObject(model);
   }
 
-  intersectCapsule(capsule: Capsule): ICollision | false {
-    return this.octree.capsuleIntersect(capsule);
+  intersectCapsule(capsule: Capsule): CollisionDto | false {
+    const collision = this.octree.capsuleIntersect(capsule);
+    return collision ? new CollisionDto(collision.normal, collision.depth) : false;
   }
 
   hasSphereCollision(sphere: Sphere): boolean {
