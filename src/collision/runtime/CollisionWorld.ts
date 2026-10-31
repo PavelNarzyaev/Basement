@@ -54,12 +54,13 @@ export class CollisionWorld implements ICollisionWorld {
     return closest;
   }
 
-  hasSphereCollision(sphere: Sphere): boolean {
-    return Boolean(this.octree.sphereIntersect(sphere)) || this.boxes.some((box) => this.boxCollision.intersectsSphere(sphere, box));
+  hasSphereCollision(sphere: Sphere, ignoredBox?: OrientedBoxDto): boolean {
+    return Boolean(this.octree.sphereIntersect(sphere))
+      || this.boxes.some((box) => box !== ignoredBox && this.boxCollision.intersectsSphere(sphere, box));
   }
 
-  findRayDistance(ray: Ray): number | undefined {
-    return this.castRay(ray)?.distance;
+  findRayDistance(ray: Ray, ignoredBox?: OrientedBoxDto): number | undefined {
+    return this.castRay(ray, ignoredBox)?.distance;
   }
 
   dispose(): void {

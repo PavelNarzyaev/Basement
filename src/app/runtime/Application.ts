@@ -133,9 +133,9 @@ export class Application {
       this.cameraController.rotate(input.lookX, input.lookY);
       this.movement.set(input.movementX, 0, input.movementZ).applyAxisAngle(this.worldUp, this.cameraController.yaw);
       this.player.update(delta, this.movement);
-      this.cameraController.update(this.player.object.position);
       const isTouchInteractionPressed = this.interactionPrompt.readInteraction();
       this.interactionController.update(input.isInteractionPressed || isTouchInteractionPressed);
+      this.cameraController.update(this.player.object.position, this.player.carriedObject?.collider);
       this.interactionPrompt.update(
         this.interactionController.candidate, this.interactionController.canPutDown, this.camera
       );

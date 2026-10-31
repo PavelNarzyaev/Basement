@@ -10,7 +10,7 @@ export interface ICollisionWorld {
   intersectCapsule(capsule: Capsule, ignoredBox?: OrientedBoxDto): CollisionDto | false;
   hasBoxCollision(box: OrientedBoxDto, ignoredBox?: OrientedBoxDto): boolean;
   castRay(ray: Ray, ignoredBox?: OrientedBoxDto): RayHitDto | undefined;
-  hasSphereCollision(sphere: Sphere): boolean;
-  findRayDistance(ray: Ray): number | undefined;
+  hasSphereCollision(sphere: Sphere, ignoredBox?: OrientedBoxDto): boolean;
+  findRayDistance(ray: Ray, ignoredBox?: OrientedBoxDto): number | undefined;
   dispose(): void;
 }
