@@ -1,20 +1,20 @@
 import { Ray, Vector3 } from 'three';
 import type { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
+import type { IBoxCollision } from '../../collision/contracts/IBoxCollision';
 import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
-import { BoxCollision } from '../../collision/runtime/BoxCollision';
 import type { ICarryable } from '../contracts/ICarryable';
+import type { ICarryPlacement } from '../contracts/ICarryPlacement';
 
-export class CarryPlacement {
+export class CarryPlacement implements ICarryPlacement {
   private static readonly sweepStep = 0.03;
   private static readonly holdingHeight = 0.3;
   private readonly up = new Vector3(0, 1, 0);
   private readonly trialBox = new OrientedBoxDto(new Vector3(), new Vector3());
   private readonly ray = new Ray(new Vector3(), new Vector3(0, -1, 0));
-  private readonly boxCollision = new BoxCollision();
   private readonly supportSamples = [[0, 0], [-0.9, -0.9], [-0.9, 0.9], [0.9, -0.9], [0.9, 0.9]] as const;
 
-  constructor(private readonly world: ICollisionWorld) {}
+  constructor(private readonly world: ICollisionWorld, private readonly boxCollision: IBoxCollision) {}
 
   getHoldingCenter(playerCenter: Vector3, rotationY: number, crate: ICarryable, target: Vector3): Vector3 {
     return target.set(0, CarryPlacement.holdingHeight, 0.43 + crate.collider.halfSize.z + 0.08)

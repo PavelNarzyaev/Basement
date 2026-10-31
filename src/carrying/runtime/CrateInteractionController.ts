@@ -2,8 +2,9 @@ import { Ray, Vector3 } from 'three';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IPlayer } from '../../player/contracts/IPlayer';
 import type { ICarryable } from '../contracts/ICarryable';
+import type { ICrateInteractionController } from '../contracts/ICrateInteractionController';
 
-export class CrateInteractionController {
+export class CrateInteractionController implements ICrateInteractionController {
   private readonly direction = new Vector3();
   private readonly forward = new Vector3();
   private readonly ray = new Ray();

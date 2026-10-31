@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { BoxGeometry, Mesh, MeshBasicMaterial, Vector3 } from 'three';
+import { BoxCollision } from '../../collision/runtime/BoxCollision';
 import { CarryPlacement } from '../runtime/CarryPlacement';
 import { CarryingFixture } from './CarryingFixture';
 
@@ -20,7 +21,7 @@ test('rejects placement when only the middle of the footprint has support', () =
   pedestal.position.set(0, 0.3, 0.76);
   const fixture = new CarryingFixture([pedestal]);
   fixture.crate.setPose(new Vector3(0, 1, 0.76), 0);
-  const placement = new CarryPlacement(fixture.world);
+  const placement = new CarryPlacement(fixture.world, new BoxCollision());
   assert.equal(placement.canMove(fixture.crate, new Vector3(0, 0.855, 0.76), 0), true);
   assert.equal(fixture.player.tryPickUp(fixture.crate), true);
   assert.equal(fixture.player.tryPutDown(), false);

@@ -1,21 +1,16 @@
 import { PerspectiveCamera, Vector3, WebGLRenderer } from 'three';
-import { CrateInteractionController } from '../../carrying/runtime/CrateInteractionController';
-import { MovableCrate } from '../../carrying/runtime/MovableCrate';
+import type { ICrateInteractionController } from '../../carrying/contracts/ICrateInteractionController';
 import type { ICameraController } from '../../camera/contracts/ICameraController';
-import { ThirdPersonCameraController } from '../../camera/runtime/ThirdPersonCameraController';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
-import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
 import type { IPlayerInput } from '../../input/contracts/IPlayerInput';
 import { ControlMode } from '../../input/contracts/ControlMode';
-import { DesktopInput } from '../../input/runtime/DesktopInput';
 import type { IVirtualJoystick } from '../../input/contracts/IVirtualJoystick';
-import { TouchInput } from '../../input/runtime/TouchInput';
 import type { IPlayer } from '../../player/contracts/IPlayer';
-import { Player } from '../../player/runtime/Player';
 import type { IScene } from '../../scenes/contracts/IScene';
 import type { StartupSettingsDto } from '../../startup/contracts/StartupSettingsDto';
 import type { IStartupSettingsDialog } from '../../startup/contracts/IStartupSettingsDialog';
 import type { IInteractionPrompt } from '../../interaction_prompt/contracts/IInteractionPrompt';
+import type { IGameplayFactory } from '../contracts/IGameplayFactory';
 
 export class Application {
   private readonly renderer: WebGLRenderer;
@@ -24,7 +19,7 @@ export class Application {
   private input: IPlayerInput | undefined;
   private cameraController: ICameraController | undefined;
   private collisionWorld: ICollisionWorld | undefined;
-  private interactionController: CrateInteractionController | undefined;
+  private interactionController: ICrateInteractionController | undefined;
   private readonly movement = new Vector3();
   private readonly worldUp = new Vector3(0, 1, 0);
   private previousTime: number | undefined;
@@ -38,6 +33,7 @@ export class Application {
     private readonly joystick: IVirtualJoystick,
     private readonly interactionPrompt: IInteractionPrompt,
     private readonly startupSettingsDialog: IStartupSettingsDialog,
+    private readonly gameplayFactory: IGameplayFactory,
   ) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
     this.camera.position.set(2.5, 1.8, 3.5);
@@ -75,13 +71,13 @@ export class Application {
       this.camera.near = 0.05;
       this.camera.far = 150;
       this.camera.updateProjectionMatrix();
-      const crates = this.scene.movableCrates.map((object) => new MovableCrate(object));
-      this.collisionWorld = new CollisionWorld(model, crates.map((crate) => crate.collider));
-      this.player = new Player(this.collisionWorld, this.scene.playerSpawn);
-      this.interactionController = new CrateInteractionController(this.player, crates, this.collisionWorld);
+      const crates = this.scene.movableCrates.map((object) => this.gameplayFactory.createCarryable(object));
+      this.collisionWorld = this.gameplayFactory.createCollisionWorld(model, crates.map((crate) => crate.collider));
+      this.player = this.gameplayFactory.createPlayer(this.collisionWorld, this.scene.playerSpawn);
+      this.interactionController = this.gameplayFactory.createInteractionController(this.player, crates, this.collisionWorld);
       // The orbit angle points from the target to the camera, opposite the player's facing direction.
       const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
-      this.cameraController = new ThirdPersonCameraController(this.camera, this.collisionWorld, cameraYaw);
+      this.cameraController = this.gameplayFactory.createCameraController(this.camera, this.collisionWorld, cameraYaw);
       this.cameraController.update(this.player.object.position);
       this.scene.scene.add(this.player.object);
       this.status.hidden = true;
@@ -114,10 +110,8 @@ export class Application {
     if (settings.controlMode === ControlMode.Touch) {
       this.joystick.show();
       this.interactionPrompt.enableTouch();
-      this.input = new TouchInput(this.canvas, this.joystick);
-    } else {
-      this.input = new DesktopInput(this.canvas);
     }
+    this.input = this.gameplayFactory.createInput(settings.controlMode);
   };
 
   private readonly resize = (): void => {

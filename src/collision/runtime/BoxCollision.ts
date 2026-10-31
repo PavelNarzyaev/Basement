@@ -2,11 +2,12 @@ import { Box3, Matrix4, Ray, Triangle, Vector3 } from 'three';
 import type { Sphere } from 'three';
 import type { Capsule } from 'three/addons/math/Capsule.js';
 import { OBB } from 'three/addons/math/OBB.js';
+import type { IBoxCollision } from '../contracts/IBoxCollision';
 import type { OrientedBoxDto } from '../contracts/OrientedBoxDto';
 import { CollisionDto } from '../contracts/CollisionDto';
 import { RayHitDto } from '../contracts/RayHitDto';
 
-export class BoxCollision {
+export class BoxCollision implements IBoxCollision {
   private readonly up = new Vector3(0, 1, 0);
   private readonly localBox = new Box3();
   private readonly localTriangle = new Triangle();

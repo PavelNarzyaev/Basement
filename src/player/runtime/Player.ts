@@ -1,7 +1,7 @@
 import { CapsuleGeometry, MathUtils, Mesh, MeshStandardMaterial, Vector3 } from 'three';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
-import { CarryPlacement } from '../../carrying/runtime/CarryPlacement';
+import type { ICarryPlacement } from '../../carrying/contracts/ICarryPlacement';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IPlayer } from '../contracts/IPlayer';
 import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
@@ -25,14 +25,16 @@ export class Player implements IPlayer {
   private readonly displacement = new Vector3();
   private readonly minimumHeight: number;
   private readonly stateMachine = new PlayerStateMachine();
-  private readonly carryPlacement: CarryPlacement;
   private readonly holdingCenter = new Vector3();
   private readonly playerCenter = new Vector3();
   private readonly previousCollider = new Capsule();
   private accumulator = 0;
 
-  constructor(private readonly world: ICollisionWorld, spawn: PlayerSpawnDto) {
-    this.carryPlacement = new CarryPlacement(world);
+  constructor(
+    private readonly world: ICollisionWorld,
+    spawn: PlayerSpawnDto,
+    private readonly carryPlacement: ICarryPlacement,
+  ) {
     this.minimumHeight = world.bounds.min.y - 3;
     this.spawn = spawn.position.clone();
     this.spawnRotationY = spawn.rotationY;

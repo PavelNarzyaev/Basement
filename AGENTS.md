@@ -37,6 +37,9 @@ Follow the fail-fast principle when writing code. Do not introduce defensive che
 - Give each DTO, type alias, and enum its own file named after the exported declaration. Keep closely related constants in a descriptively named constants file. DTO classes contain data only and follow the one-class-per-file rule.
 - Place module tests in `tests`. Test files are exempt from the exported-class rule and use descriptive names ending in `.test.ts`.
 - Application entry points such as `src/main.ts` and tool configuration files are exempt from the module class layout.
+- Runtime code may access other modules only through their `contracts`; it must not import another module's runtime implementations, including type-only imports. Runtime implementations within the same module may depend on each other.
+- Use `src/main.ts` as the composition root: select concrete implementations and wire dependencies there. Inject dependencies through interfaces; for objects created later, inject factories with interface contracts and define their wiring in the composition root.
+- Reciprocal dependencies between modules through contracts are allowed. Contracts must not depend on runtime implementations.
 
 ## Blender
 

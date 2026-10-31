@@ -1,10 +1,21 @@
 import { Application } from './app/runtime/Application';
+import type { IGameplayFactory } from './app/contracts/IGameplayFactory';
+import { ThirdPersonCameraController } from './camera/runtime/ThirdPersonCameraController';
+import { CarryPlacement } from './carrying/runtime/CarryPlacement';
+import { CrateInteractionController } from './carrying/runtime/CrateInteractionController';
+import { MovableCrate } from './carrying/runtime/MovableCrate';
+import { BoxCollision } from './collision/runtime/BoxCollision';
+import { CollisionWorld } from './collision/runtime/CollisionWorld';
 import { CanvasOverlayFactory } from './canvas_overlay/runtime/CanvasOverlayFactory';
 import { VirtualJoystick } from './input/runtime/VirtualJoystick';
+import { ControlMode } from './input/contracts/ControlMode';
+import { DesktopInput } from './input/runtime/DesktopInput';
+import { TouchInput } from './input/runtime/TouchInput';
 import { InteractionPrompt } from './interaction_prompt/runtime/InteractionPrompt';
 import { StartupSettingsDialog } from './startup/runtime/StartupSettingsDialog';
 import { Object3DDisposer } from './disposer/runtime/Object3DDisposer';
 import { BasementScene } from './scenes/runtime/BasementScene';
+import { Player } from './player/runtime/Player';
 import './style.css';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -19,7 +30,28 @@ const overlayFactory = new CanvasOverlayFactory();
 const joystick = new VirtualJoystick(canvas, overlayFactory);
 const interactionPrompt = new InteractionPrompt(canvas, overlayFactory);
 const startupSettingsDialog = new StartupSettingsDialog(canvas, overlayFactory);
-const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog);
+const gameplayFactory: IGameplayFactory = {
+  createCarryable(model) {
+    return new MovableCrate(model);
+  },
+  createCollisionWorld(model, boxes) {
+    return new CollisionWorld(model, boxes);
+  },
+  createPlayer(world, spawn) {
+    const carryPlacement = new CarryPlacement(world, new BoxCollision());
+    return new Player(world, spawn, carryPlacement);
+  },
+  createInteractionController(player, crates, world) {
+    return new CrateInteractionController(player, crates, world);
+  },
+  createCameraController(camera, world, initialYaw) {
+    return new ThirdPersonCameraController(camera, world, initialYaw);
+  },
+  createInput(controlMode) {
+    return controlMode === ControlMode.Touch ? new TouchInput(canvas, joystick) : new DesktopInput(canvas);
+  },
+};
+const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory);
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => application.dispose());
