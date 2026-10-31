@@ -3,6 +3,7 @@ import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
 import { BoxCollision } from '../../collision/runtime/BoxCollision';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import { Player } from '../../player/runtime/Player';
+import type { IPlayerVisual } from '../../player/contracts/IPlayerVisual';
 import { MovableCrate } from '../runtime/MovableCrate';
 import { CarryPlacement } from '../runtime/CarryPlacement';
 
@@ -13,7 +14,7 @@ export class CarryingFixture {
   readonly world: CollisionWorld;
   readonly player: Player;
 
-  constructor(obstacles: Mesh[] = []) {
+  constructor(obstacles: Mesh[] = [], visual: IPlayerVisual = { object: new Group(), update() {}, dispose() {} }) {
     const floor = new Mesh(new BoxGeometry(30, 0.2, 30), new MeshBasicMaterial());
     floor.position.y = -0.1;
     const ceiling = new Mesh(new BoxGeometry(30, 0.2, 30), new MeshBasicMaterial());
@@ -26,7 +27,7 @@ export class CarryingFixture {
     this.crate = new MovableCrate(crateModel);
     this.world = new CollisionWorld(this.environment, [this.crate.collider]);
     const carryPlacement = new CarryPlacement(this.world, new BoxCollision());
-    this.player = new Player(this.world, new PlayerSpawnDto(new Vector3(0, 0.001, 0), 0), carryPlacement);
+    this.player = new Player(this.world, new PlayerSpawnDto(new Vector3(0, 0.001, 0), 0), carryPlacement, visual);
     this.scene.add(this.player.object);
   }
 

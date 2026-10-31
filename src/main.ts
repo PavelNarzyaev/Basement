@@ -1,3 +1,4 @@
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Application } from './app/runtime/Application';
 import type { IGameplayFactory } from './app/contracts/IGameplayFactory';
 import { ThirdPersonCameraController } from './camera/runtime/ThirdPersonCameraController';
@@ -16,6 +17,7 @@ import { StartupSettingsDialog } from './startup/runtime/StartupSettingsDialog';
 import { Object3DDisposer } from './disposer/runtime/Object3DDisposer';
 import { BasementScene } from './scenes/runtime/BasementScene';
 import { Player } from './player/runtime/Player';
+import { PlayerVisual } from './player/runtime/PlayerVisual';
 import './style.css';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -37,9 +39,18 @@ const gameplayFactory: IGameplayFactory = {
   createCollisionWorld(model, boxes) {
     return new CollisionWorld(model, boxes);
   },
-  createPlayer(world, spawn) {
+  async createPlayer(world, spawn, onProgress) {
     const carryPlacement = new CarryPlacement(world, new BoxCollision());
-    return new Player(world, spawn, carryPlacement);
+    const model = await new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/player/player.glb`, (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total * 100);
+    });
+    try {
+      const visual = new PlayerVisual(model.scene, model.animations, objectDisposer);
+      return new Player(world, spawn, carryPlacement, visual);
+    } catch (error) {
+      objectDisposer.dispose(model.scene);
+      throw error;
+    }
   },
   createInteractionController(player, crates, world) {
     return new CrateInteractionController(player, crates, world);

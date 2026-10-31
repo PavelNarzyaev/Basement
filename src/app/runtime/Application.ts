@@ -65,7 +65,7 @@ export class Application {
 
   private async loadScene(): Promise<void> {
     try {
-      const model = await this.scene.load(this.updateLoadingProgress);
+      const model = await this.scene.load((percentage) => this.updateLoadingProgress(percentage * 0.9));
       if (this.isDisposed) return;
       if (!model) throw new Error('Scene model was not loaded.');
       this.camera.near = 0.05;
@@ -73,7 +73,15 @@ export class Application {
       this.camera.updateProjectionMatrix();
       const crates = this.scene.movableCrates.map((object) => this.gameplayFactory.createCarryable(object));
       this.collisionWorld = this.gameplayFactory.createCollisionWorld(model, crates.map((crate) => crate.collider));
-      this.player = this.gameplayFactory.createPlayer(this.collisionWorld, this.scene.playerSpawn);
+      const player = await this.gameplayFactory.createPlayer(
+        this.collisionWorld, this.scene.playerSpawn,
+        (percentage) => this.updateLoadingProgress(90 + percentage * 0.1),
+      );
+      if (this.isDisposed) {
+        player.dispose();
+        return;
+      }
+      this.player = player;
       this.interactionController = this.gameplayFactory.createInteractionController(this.player, crates, this.collisionWorld);
       // The orbit angle points from the target to the camera, opposite the player's facing direction.
       const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;

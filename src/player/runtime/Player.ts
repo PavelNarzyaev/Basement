@@ -1,9 +1,10 @@
-import { CapsuleGeometry, MathUtils, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import { Group, MathUtils, Vector3 } from 'three';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
 import type { ICarryPlacement } from '../../carrying/contracts/ICarryPlacement';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IPlayer } from '../contracts/IPlayer';
+import type { IPlayerVisual } from '../contracts/IPlayerVisual';
 import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
 import { PlayerStateMachine } from './PlayerStateMachine';
 
@@ -12,7 +13,7 @@ export class Player implements IPlayer {
   private static readonly colliderHeight = 1.8;
   private static readonly fixedStep = 1 / 120;
 
-  readonly object: Mesh<CapsuleGeometry, MeshStandardMaterial>;
+  readonly object = new Group();
   private readonly collider = new Capsule(
     new Vector3(0, Player.colliderRadius, 0),
     new Vector3(0, Player.colliderHeight - Player.colliderRadius, 0),
@@ -28,31 +29,41 @@ export class Player implements IPlayer {
   private readonly holdingCenter = new Vector3();
   private readonly playerCenter = new Vector3();
   private readonly previousCollider = new Capsule();
+  private readonly stepStart = new Vector3();
+  private traveledDistance = 0;
+  private speed = 0;
   private accumulator = 0;
 
   constructor(
     private readonly world: ICollisionWorld,
     spawn: PlayerSpawnDto,
     private readonly carryPlacement: ICarryPlacement,
+    private readonly visual: IPlayerVisual,
   ) {
     this.minimumHeight = world.bounds.min.y - 3;
     this.spawn = spawn.position.clone();
     this.spawnRotationY = spawn.rotationY;
-    this.object = new Mesh(
-      new CapsuleGeometry(Player.colliderRadius, Player.colliderHeight - 2 * Player.colliderRadius, 8, 16),
-      new MeshStandardMaterial({ color: '#e3a34c', roughness: 0.7 }),
-    );
+    this.object.name = 'PlayerController';
+    this.visual.object.position.y = -Player.colliderHeight / 2;
+    this.object.add(this.visual.object);
     this.reset();
   }
 
   update(delta: number, movement: Vector3): void {
     this.movement.set(movement.x, 0, movement.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.speed);
-    this.accumulator += Math.min(delta, 0.1);
+    const elapsed = Math.min(delta, 0.1);
+    this.accumulator += elapsed;
+    this.traveledDistance = 0;
+    let simulatedTime = 0;
     while (this.accumulator >= Player.fixedStep) {
       this.step();
       this.accumulator -= Player.fixedStep;
+      simulatedTime += Player.fixedStep;
     }
     this.collider.getCenter(this.object.position);
+    if (simulatedTime > 0) this.speed = this.traveledDistance / simulatedTime;
+    if (this.movement.lengthSq() === 0) this.speed = 0;
+    this.visual.update(elapsed, this.speed, Boolean(this.carriedObject));
   }
 
   get carriedObject(): ICarryable | undefined {
@@ -90,11 +101,11 @@ export class Player implements IPlayer {
 
   dispose(): void {
     this.object.removeFromParent();
-    this.object.geometry.dispose();
-    this.object.material.dispose();
+    this.visual.dispose();
   }
 
   private step(): void {
+    this.stepStart.copy(this.collider.start);
     this.rotate();
     this.velocity.x = this.movement.x;
     this.velocity.z = this.movement.z;
@@ -123,7 +134,14 @@ export class Player implements IPlayer {
         }
       }
     }
-    if (this.collider.start.y < this.minimumHeight) this.reset();
+    if (this.collider.start.y < this.minimumHeight) {
+      this.reset();
+      this.traveledDistance = 0;
+      return;
+    }
+    this.traveledDistance += Math.hypot(
+      this.collider.start.x - this.stepStart.x, this.collider.start.z - this.stepStart.z,
+    );
   }
 
   private rotate(): void {

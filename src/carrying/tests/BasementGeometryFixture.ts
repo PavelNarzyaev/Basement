@@ -23,7 +23,10 @@ export class BasementGeometryFixture {
     this.crate = new MovableCrate(crateModel);
     this.world = new CollisionWorld(model, [this.crate.collider]);
     const carryPlacement = new CarryPlacement(this.world, new BoxCollision());
-    this.player = new Player(this.world, new PlayerSpawnDto(new Vector3(2, 0.154292, -5.5), 0), carryPlacement);
+    this.player = new Player(
+      this.world, new PlayerSpawnDto(new Vector3(2, 0.154292, -5.5), 0), carryPlacement,
+      { object: new Group(), update() {}, dispose() {} },
+    );
     this.scene.add(this.player.object);
   }
 
