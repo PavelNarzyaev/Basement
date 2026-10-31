@@ -28,11 +28,37 @@ test('rejects placement when only the middle of the footprint has support', () =
   assert.equal(fixture.player.carriedObject, fixture.crate);
 });
 
-test('rejects pickup when the transfer path crosses an obstacle', () => {
+test('allows pickup across an obstacle when the holding position is clear', () => {
   const barrier = new Mesh(new BoxGeometry(1.2, 0.1, 0.1), new MeshBasicMaterial());
   barrier.position.set(0, 0.65, 0.9);
   const fixture = new CarryingFixture([barrier]);
-  assert.equal(fixture.player.tryPickUp(fixture.crate), false);
+  assert.equal(fixture.player.canPickUp(fixture.crate), true);
+  assert.equal(fixture.player.tryPickUp(fixture.crate), true);
+  assert.equal(fixture.player.carriedObject, fixture.crate);
+  assert.equal(fixture.world.hasBoxCollision(fixture.crate.collider), false);
+});
+
+test('allows placement across an obstacle when the final position has support and is clear', () => {
+  const barrier = new Mesh(new BoxGeometry(0.08, 0.1, 1.2), new MeshBasicMaterial());
+  barrier.position.set(0.15, 0.65, 0.76);
+  const fixture = new CarryingFixture([barrier]);
+  assert.equal(fixture.player.tryPickUp(fixture.crate), true);
+  const placement = new CarryPlacement(fixture.world, new BoxCollision());
+  const target = new Vector3(0, 0.255, 0.76);
+  assert.equal(placement.canMove(fixture.crate, target, 0), false);
+  assert.equal(fixture.player.canPutDown(), true);
+  assert.equal(fixture.player.tryPutDown(), true);
   assert.equal(fixture.player.carriedObject, undefined);
-  assert.deepEqual(fixture.crate.collider.center.toArray(), [0, 0.25, 1.05]);
+  assert.ok(fixture.crate.collider.center.distanceTo(target) < 0.0001);
+  assert.equal(fixture.world.hasBoxCollision(fixture.crate.collider), false);
+});
+
+test('rejects placement when an obstacle overlaps the final position between support samples', () => {
+  const barrier = new Mesh(new BoxGeometry(0.08, 0.3, 1.2), new MeshBasicMaterial());
+  barrier.position.set(0.15, 0.15, 0.76);
+  const fixture = new CarryingFixture([barrier]);
+  assert.equal(fixture.player.tryPickUp(fixture.crate), true);
+  assert.equal(fixture.player.canPutDown(), false);
+  assert.equal(fixture.player.tryPutDown(), false);
+  assert.equal(fixture.player.carriedObject, fixture.crate);
 });

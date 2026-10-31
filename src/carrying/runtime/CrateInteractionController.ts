@@ -9,7 +9,7 @@ export class CrateInteractionController implements ICrateInteractionController {
   private readonly forward = new Vector3();
   private readonly ray = new Ray();
   private selectedCrate: ICarryable | undefined;
-  private feedbackDuration = 0;
+  canPutDown = false;
 
   constructor(
     private readonly player: IPlayer,
@@ -21,20 +21,19 @@ export class CrateInteractionController implements ICrateInteractionController {
     return this.selectedCrate;
   }
 
-  get hasBlockedInteraction(): boolean {
-    return this.feedbackDuration > 0;
+  update(isInteractionPressed: boolean): void {
+    this.updateAvailability();
+    if (!isInteractionPressed) return;
+    const hasInteracted = this.player.carriedObject
+      ? this.canPutDown && this.player.tryPutDown()
+      : Boolean(this.selectedCrate && this.player.tryPickUp(this.selectedCrate));
+    if (hasInteracted) this.updateAvailability();
   }
 
-  update(delta: number, isInteractionPressed: boolean): void {
-    this.feedbackDuration = Math.max(0, this.feedbackDuration - delta);
-    this.selectedCrate = this.player.carriedObject ? undefined : this.findCandidate();
-    if (!isInteractionPressed) return;
-    if (this.player.carriedObject) {
-      this.feedbackDuration = this.player.tryPutDown() ? 0 : 1.5;
-    } else if (this.selectedCrate) {
-      this.feedbackDuration = this.player.tryPickUp(this.selectedCrate) ? 0 : 1.5;
-      if (this.player.carriedObject) this.selectedCrate = undefined;
-    }
+  private updateAvailability(): void {
+    const candidate = this.player.carriedObject ? undefined : this.findCandidate();
+    this.selectedCrate = candidate && this.player.canPickUp(candidate) ? candidate : undefined;
+    this.canPutDown = this.player.canPutDown();
   }
 
   private findCandidate(): ICarryable | undefined {

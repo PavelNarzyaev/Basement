@@ -10,7 +10,6 @@ export class InteractionPrompt implements IInteractionPrompt {
   private readonly overlay: ICanvasOverlay;
   private readonly takeLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly placeLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
-  private readonly blockedLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly touchPanel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly touchTakeLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly touchPlaceLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
@@ -26,11 +25,10 @@ export class InteractionPrompt implements IInteractionPrompt {
     this.overlay = overlayFactory.create();
     this.takeLabel = this.overlay.createLabel('E · Взять', 21);
     this.placeLabel = this.overlay.createLabel('E · Поставить', 21);
-    this.blockedLabel = this.overlay.createLabel('Нет места или опоры для ящика', 17);
     this.touchPanel = this.overlay.createMesh(new CircleGeometry(1, 64), '#30394a', 0.92);
     this.touchTakeLabel = this.overlay.createLabel('взять', 16);
     this.touchPlaceLabel = this.overlay.createLabel('поставить', 16);
-    this.overlay.scene.add(this.takeLabel, this.placeLabel, this.blockedLabel, this.touchPanel, this.touchTakeLabel, this.touchPlaceLabel);
+    this.overlay.scene.add(this.takeLabel, this.placeLabel, this.touchPanel, this.touchTakeLabel, this.touchPlaceLabel);
     // Registered before TouchInput: interaction taps must not also rotate the camera.
     canvas.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 || !this.touchPanel.visible || !this.overlay.scene.visible) return;
@@ -61,9 +59,6 @@ export class InteractionPrompt implements IInteractionPrompt {
     this.height = height;
     this.overlay.resize(width, height);
     this.placeLabel.position.set(width / 2, height - 66, 0);
-    this.blockedLabel.position.set(width / 2, height - 110, 0);
-    const labelScale = Math.min(1, (width - 24) / 512);
-    this.blockedLabel.scale.set(512 * labelScale, 64 * labelScale, 1);
     this.touchRadius = Math.min(touchControlLayout.maximumRadius, width * touchControlLayout.widthRatio, height * touchControlLayout.heightRatio);
     const x = width - touchControlLayout.margin - this.touchRadius;
     const y = height - touchControlLayout.margin - this.touchRadius;
@@ -76,13 +71,12 @@ export class InteractionPrompt implements IInteractionPrompt {
     }
   }
 
-  update(candidate: ICarryable | undefined, carriedObject: ICarryable | undefined, hasBlockedInteraction: boolean, camera: PerspectiveCamera): void {
-    this.overlay.scene.visible = Boolean(candidate || carriedObject || hasBlockedInteraction);
-    this.placeLabel.visible = Boolean(carriedObject) && !this.isTouchEnabled;
-    this.blockedLabel.visible = hasBlockedInteraction;
-    this.touchPanel.visible = this.isTouchEnabled && Boolean(candidate || carriedObject);
-    this.touchTakeLabel.visible = this.touchPanel.visible && !carriedObject;
-    this.touchPlaceLabel.visible = this.touchPanel.visible && Boolean(carriedObject);
+  update(candidate: ICarryable | undefined, canPutDown: boolean, camera: PerspectiveCamera): void {
+    this.overlay.scene.visible = Boolean(candidate || canPutDown);
+    this.placeLabel.visible = canPutDown && !this.isTouchEnabled;
+    this.touchPanel.visible = this.isTouchEnabled && Boolean(candidate || canPutDown);
+    this.touchTakeLabel.visible = this.touchPanel.visible && !canPutDown;
+    this.touchPlaceLabel.visible = this.touchPanel.visible && canPutDown;
     this.takeLabel.visible = false;
     if (!candidate) return;
     this.screenPosition.copy(candidate.collider.center);

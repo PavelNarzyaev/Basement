@@ -21,6 +21,13 @@ export class CarryPlacement implements ICarryPlacement {
       .applyAxisAngle(this.up, rotationY).add(playerCenter);
   }
 
+  canOccupy(crate: ICarryable, target: Vector3, rotationY: number): boolean {
+    this.trialBox.center.copy(target);
+    this.trialBox.halfSize.copy(crate.collider.halfSize);
+    this.trialBox.rotationY = rotationY;
+    return !this.world.hasBoxCollision(this.trialBox, crate.collider);
+  }
+
   canMove(crate: ICarryable, target: Vector3, rotationY: number): boolean {
     const box = crate.collider;
     const angle = Math.atan2(Math.sin(rotationY - box.rotationY), Math.cos(rotationY - box.rotationY));
@@ -57,6 +64,6 @@ export class CarryPlacement implements ICarryPlacement {
     this.trialBox.halfSize.copy(box.halfSize);
     this.trialBox.rotationY = box.rotationY;
     if (this.boxCollision.intersectCapsule(playerCollider, this.trialBox)) return undefined;
-    return this.canMove(crate, center, box.rotationY) ? center : undefined;
+    return this.canOccupy(crate, center, box.rotationY) ? center : undefined;
   }
 }

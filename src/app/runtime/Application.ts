@@ -135,10 +135,9 @@ export class Application {
       this.player.update(delta, this.movement);
       this.cameraController.update(this.player.object.position);
       const isTouchInteractionPressed = this.interactionPrompt.readInteraction();
-      this.interactionController.update(delta, input.isInteractionPressed || isTouchInteractionPressed);
+      this.interactionController.update(input.isInteractionPressed || isTouchInteractionPressed);
       this.interactionPrompt.update(
-        this.interactionController.candidate, this.player.carriedObject,
-        this.interactionController.hasBlockedInteraction, this.camera,
+        this.interactionController.candidate, this.interactionController.canPutDown, this.camera
       );
     }
     this.renderer.render(this.scene.scene, this.camera);

@@ -4,6 +4,7 @@ import type { ICarryable } from './ICarryable';
 
 export interface ICarryPlacement {
   getHoldingCenter(playerCenter: Vector3, rotationY: number, crate: ICarryable, target: Vector3): Vector3;
+  canOccupy(crate: ICarryable, target: Vector3, rotationY: number): boolean;
   canMove(crate: ICarryable, target: Vector3, rotationY: number): boolean;
   findPlacement(crate: ICarryable, playerCollider: Capsule): Vector3 | undefined;
 }

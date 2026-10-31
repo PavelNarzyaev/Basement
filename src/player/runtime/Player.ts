@@ -59,11 +59,20 @@ export class Player implements IPlayer {
     return this.stateMachine.state.carriedObject;
   }
 
-  tryPickUp(crate: ICarryable): boolean {
+  canPickUp(crate: ICarryable): boolean {
     if (this.carriedObject) return false;
     this.collider.getCenter(this.playerCenter);
     this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
-    if (!this.carryPlacement.canMove(crate, this.holdingCenter, this.object.rotation.y)) return false;
+    return this.carryPlacement.canOccupy(crate, this.holdingCenter, this.object.rotation.y);
+  }
+
+  canPutDown(): boolean {
+    const crate = this.carriedObject;
+    return Boolean(crate && this.carryPlacement.findPlacement(crate, this.collider));
+  }
+
+  tryPickUp(crate: ICarryable): boolean {
+    if (!this.canPickUp(crate)) return false;
     this.stateMachine.startCarrying(crate);
     this.syncCarriedObject();
     return true;
