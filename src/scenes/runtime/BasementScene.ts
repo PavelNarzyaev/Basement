@@ -25,14 +25,19 @@ export class BasementScene implements IScene {
     this.scene.background = new Color('#151a24');
   }
 
-  async load(): Promise<Object3D | undefined> {
-    const model = await new GLTFLoader().loadAsync(BasementScene.modelUrl);
+  async load(onProgress: (percentage: number) => void): Promise<Object3D | undefined> {
+    const model = await new GLTFLoader().loadAsync(BasementScene.modelUrl, (event) => {
+      if (event.lengthComputable) {
+        onProgress((event.loaded / event.total) * 100);
+      }
+    });
     if (this.isDisposed) {
       this.objectDisposer.dispose(model.scene);
       return;
     }
     this.addLampLights(model.scene);
     this.scene.add(model.scene);
+    onProgress(100);
     return model.scene;
   }
 

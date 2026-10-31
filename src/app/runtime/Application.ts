@@ -38,7 +38,7 @@ export class Application {
     this.camera.lookAt(0, 0, 0);
     this.status.className = 'scene-status';
     this.status.setAttribute('role', 'status');
-    this.status.textContent = 'Загрузка подвала…';
+    this.updateLoadingProgress(0);
     document.body.append(this.status);
     void this.loadScene();
 
@@ -62,7 +62,7 @@ export class Application {
 
   private async loadScene(): Promise<void> {
     try {
-      const model = await this.scene.load();
+      const model = await this.scene.load(this.updateLoadingProgress);
       if (this.isDisposed) return;
       if (!model) throw new Error('Scene model was not loaded.');
       this.camera.near = 0.05;
@@ -85,6 +85,10 @@ export class Application {
       console.error('Scene initialization failed:', error);
     }
   }
+
+  private readonly updateLoadingProgress = (percentage: number): void => {
+    this.status.textContent = `Загрузка: ${Math.floor(percentage)}%`;
+  };
 
   private disposeGameplay(): void {
     this.input?.dispose();
