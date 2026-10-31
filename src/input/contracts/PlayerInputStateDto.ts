@@ -4,5 +4,6 @@ export class PlayerInputStateDto {
     readonly movementZ: number,
     readonly lookX: number,
     readonly lookY: number,
+    readonly isInteractionPressed = false,
   ) {}
 }

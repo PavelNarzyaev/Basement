@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/*/tests/*.test.ts",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview"
   },
@@ -16,7 +17,9 @@
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@types/node": "22.20.5",
     "@types/three": "0.186.0",
+    "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vite": "8.3.5"
   }

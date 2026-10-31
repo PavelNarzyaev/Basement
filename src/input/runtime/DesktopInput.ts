@@ -5,6 +5,7 @@ export class DesktopInput implements IPlayerInput {
   private readonly keys = new Set<string>();
   private lookX = 0;
   private lookY = 0;
+  private isInteractionPressed = false;
   private readonly events = new AbortController();
 
   constructor(private readonly canvas: HTMLCanvasElement) {
@@ -13,6 +14,10 @@ export class DesktopInput implements IPlayerInput {
       void canvas.requestPointerLock().catch(console.error);
     }, options);
     window.addEventListener('keydown', (event) => {
+      if (document.pointerLockElement === canvas && event.code === 'KeyE') {
+        event.preventDefault();
+        if (!event.repeat) this.isInteractionPressed = true;
+      }
       if (document.pointerLockElement === canvas && ['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) {
         event.preventDefault();
         this.keys.add(event.code);
@@ -40,9 +45,11 @@ export class DesktopInput implements IPlayerInput {
       Number(this.keys.has('KeyS')) - Number(this.keys.has('KeyW')),
       this.lookX * 0.0025,
       this.lookY * 0.0025,
+      this.isInteractionPressed,
     );
     this.lookX = 0;
     this.lookY = 0;
+    this.isInteractionPressed = false;
     return state;
   }
 
@@ -56,5 +63,6 @@ export class DesktopInput implements IPlayerInput {
     this.keys.clear();
     this.lookX = 0;
     this.lookY = 0;
+    this.isInteractionPressed = false;
   };
 }

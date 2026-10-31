@@ -1,31 +1,65 @@
-import { Box3 } from 'three';
-import type { Object3D, Ray, Sphere } from 'three';
+import { Box3, Vector3 } from 'three';
+import type { Object3D, Ray, Sphere, Triangle } from 'three';
 import type { Capsule } from 'three/addons/math/Capsule.js';
 import { Octree } from 'three/addons/math/Octree.js';
 import { CollisionDto } from '../contracts/CollisionDto';
 import type { ICollisionWorld } from '../contracts/ICollisionWorld';
+import type { OrientedBoxDto } from '../contracts/OrientedBoxDto';
+import { RayHitDto } from '../contracts/RayHitDto';
+import { BoxCollision } from './BoxCollision';
 
 export class CollisionWorld implements ICollisionWorld {
   readonly bounds: Box3;
   private readonly octree: Octree;
+  private readonly boxCollision = new BoxCollision();
+  private readonly boxBounds = new Box3();
+  private readonly triangles: Triangle[] = [];
 
-  constructor(readonly model: Object3D) {
+  constructor(readonly model: Object3D, private readonly boxes: readonly OrientedBoxDto[] = []) {
     this.octree = new Octree().fromGraphNode(model);
     this.bounds = new Box3().setFromObject(model);
   }
 
-  intersectCapsule(capsule: Capsule): CollisionDto | false {
+  intersectCapsule(capsule: Capsule, ignoredBox?: OrientedBoxDto): CollisionDto | false {
     const collision = this.octree.capsuleIntersect(capsule);
-    return collision ? new CollisionDto(collision.normal, collision.depth) : false;
+    if (collision && collision.depth > 0.000001) return new CollisionDto(collision.normal, collision.depth);
+    for (const box of this.boxes) {
+      if (box === ignoredBox) continue;
+      const boxCollision = this.boxCollision.intersectCapsule(capsule, box);
+      if (boxCollision) return boxCollision;
+    }
+    return false;
+  }
+
+  hasBoxCollision(box: OrientedBoxDto, ignoredBox = box): boolean {
+    this.boxCollision.getBounds(box, this.boxBounds);
+    this.triangles.length = 0;
+    this.octree.getBoxTriangles(this.boxBounds, this.triangles);
+    for (const triangle of this.triangles) {
+      if (this.boxCollision.intersectsTriangle(box, triangle)) return true;
+    }
+    return this.boxes.some((other) => other !== ignoredBox && this.boxCollision.intersectsBox(box, other));
+  }
+
+  castRay(ray: Ray, ignoredBox?: OrientedBoxDto): RayHitDto | undefined {
+    const collision = this.octree.rayIntersect(ray);
+    let closest = collision
+      ? new RayHitDto(collision.position, collision.triangle.getNormal(new Vector3()), collision.distance)
+      : undefined;
+    for (const box of this.boxes) {
+      if (box === ignoredBox) continue;
+      const hit = this.boxCollision.intersectRay(ray, box);
+      if (hit && (!closest || hit.distance < closest.distance)) closest = hit;
+    }
+    return closest;
   }
 
   hasSphereCollision(sphere: Sphere): boolean {
-    return Boolean(this.octree.sphereIntersect(sphere));
+    return Boolean(this.octree.sphereIntersect(sphere)) || this.boxes.some((box) => this.boxCollision.intersectsSphere(sphere, box));
   }
 
   findRayDistance(ray: Ray): number | undefined {
-    const collision = this.octree.rayIntersect(ray);
-    return collision ? collision.distance : undefined;
+    return this.castRay(ray)?.distance;
   }
 
   dispose(): void {

@@ -17,6 +17,7 @@ export class BasementScene implements IScene {
   private static readonly lampDistance = 150;
 
   readonly scene = new Scene();
+  readonly movableCrates: Object3D[] = [];
   // Leave 0.05 units above the measured floor so gravity settles the collider.
   readonly playerSpawn = new PlayerSpawnDto(new Vector3(0, 0.104292 + 0.05, -13), Math.PI);
   private isDisposed = false;
@@ -37,6 +38,10 @@ export class BasementScene implements IScene {
     }
     this.addLampLights(model.scene);
     this.scene.add(model.scene);
+    const crate = model.scene.getObjectByName('MovableCrate');
+    if (!crate) throw new Error('Basement model is missing MovableCrate.');
+    this.scene.attach(crate);
+    this.movableCrates.push(crate);
     onProgress(100);
     return model.scene;
   }
