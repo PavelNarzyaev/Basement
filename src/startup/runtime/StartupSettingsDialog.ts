@@ -1,27 +1,40 @@
 import { Group } from 'three';
-import type { WebGLRenderer } from 'three';
+import type { BufferGeometry, Mesh, MeshBasicMaterial, WebGLRenderer } from 'three';
 import { ControlMode } from '../../input/contracts/ControlMode';
-import { CanvasOverlay } from '../../ui/runtime/CanvasOverlay';
+import type { ICanvasOverlay } from '../../canvas_overlay/contracts/ICanvasOverlay';
+import type { ICanvasOverlayFactory } from '../../canvas_overlay/contracts/ICanvasOverlayFactory';
 import { StartupSettingsDto } from '../contracts/StartupSettingsDto';
+import type { IStartupSettingsDialog } from '../contracts/IStartupSettingsDialog';
 
-export class StartupSettingsDialog {
-  private readonly overlay = new CanvasOverlay();
+export class StartupSettingsDialog implements IStartupSettingsDialog {
+  private onStart!: (settings: StartupSettingsDto) => void;
+  private readonly overlay: ICanvasOverlay;
   private readonly content = new Group();
-  private readonly panel = this.overlay.createPanel('#202632', 0.97);
-  private readonly heading = this.overlay.createLabel('Настройки запуска', 24);
-  private readonly controlLabel = this.overlay.createLabel('Режим управления', 16);
-  private readonly toggleBackground = this.overlay.createPanel('#30394a');
-  private readonly selectedBackground = this.overlay.createPanel('#596c89');
-  private readonly desktopLabel = this.overlay.createLabel('Десктоп', 18);
-  private readonly mobileLabel = this.overlay.createLabel('Мобильный', 18);
-  private readonly startBackground = this.overlay.createPanel('#435b48');
-  private readonly startLabel = this.overlay.createLabel('Запустить', 21);
+  private readonly panel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly heading: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly controlLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly toggleBackground: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly selectedBackground: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly desktopLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly mobileLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly startBackground: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly startLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly events = new AbortController();
   private controlMode = ControlMode.Desktop;
   private pressedAction: ControlMode | 'start' | undefined;
   private pressedPointer: number | undefined;
 
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly onStart: (settings: StartupSettingsDto) => void) {
+  constructor(private readonly canvas: HTMLCanvasElement, overlayFactory: ICanvasOverlayFactory) {
+    this.overlay = overlayFactory.create();
+    this.panel = this.overlay.createPanel('#202632', 0.97);
+    this.heading = this.overlay.createLabel('Настройки запуска', 24);
+    this.controlLabel = this.overlay.createLabel('Режим управления', 16);
+    this.toggleBackground = this.overlay.createPanel('#30394a');
+    this.selectedBackground = this.overlay.createPanel('#596c89');
+    this.desktopLabel = this.overlay.createLabel('Десктоп', 18);
+    this.mobileLabel = this.overlay.createLabel('Мобильный', 18);
+    this.startBackground = this.overlay.createPanel('#435b48');
+    this.startLabel = this.overlay.createLabel('Запустить', 21);
     this.panel.position.z = -1;
     this.selectedBackground.position.z = 0.1;
     this.desktopLabel.position.z = 0.2;
@@ -39,7 +52,8 @@ export class StartupSettingsDialog {
     window.addEventListener('blur', this.clearPress, options);
   }
 
-  open(): void {
+  open(onStart: (settings: StartupSettingsDto) => void): void {
+    this.onStart = onStart;
     this.clearPress();
     this.controlMode = window.matchMedia('(pointer: coarse)').matches ? ControlMode.Touch : ControlMode.Desktop;
     this.updateSelection();

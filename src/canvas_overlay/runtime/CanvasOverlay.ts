@@ -3,8 +3,9 @@ import {
   PlaneGeometry, Scene, SRGBColorSpace,
 } from 'three';
 import type { BufferGeometry, WebGLRenderer } from 'three';
+import type { ICanvasOverlay } from '../contracts/ICanvasOverlay';
 
-export class CanvasOverlay {
+export class CanvasOverlay implements ICanvasOverlay {
   readonly scene = new Scene();
   private readonly camera = new OrthographicCamera(0, 1, 0, 1, 0.1, 10);
   private readonly plane = new PlaneGeometry(1, 1);

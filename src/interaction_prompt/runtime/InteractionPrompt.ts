@@ -1,15 +1,17 @@
 import { Vector3 } from 'three';
-import type { PerspectiveCamera, WebGLRenderer } from 'three';
+import type { BufferGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, WebGLRenderer } from 'three';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
-import { CanvasOverlay } from './CanvasOverlay';
+import type { ICanvasOverlay } from '../../canvas_overlay/contracts/ICanvasOverlay';
+import type { ICanvasOverlayFactory } from '../../canvas_overlay/contracts/ICanvasOverlayFactory';
+import type { IInteractionPrompt } from '../contracts/IInteractionPrompt';
 
-export class InteractionPrompt {
-  private readonly overlay = new CanvasOverlay();
-  private readonly takeLabel = this.overlay.createLabel('E · Взять', 21);
-  private readonly placeLabel = this.overlay.createLabel('E · Поставить', 21);
-  private readonly blockedLabel = this.overlay.createLabel('Нет места или опоры для ящика', 17);
-  private readonly touchPanel = this.overlay.createPanel('#30394a', 0.92);
-  private readonly touchLabel = this.overlay.createLabel('Взять / поставить', 16);
+export class InteractionPrompt implements IInteractionPrompt {
+  private readonly overlay: ICanvasOverlay;
+  private readonly takeLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly placeLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly blockedLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly touchPanel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly touchLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly screenPosition = new Vector3();
   private readonly events = new AbortController();
   private isTouchEnabled = false;
@@ -17,7 +19,13 @@ export class InteractionPrompt {
   private width = 1;
   private height = 1;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, overlayFactory: ICanvasOverlayFactory) {
+    this.overlay = overlayFactory.create();
+    this.takeLabel = this.overlay.createLabel('E · Взять', 21);
+    this.placeLabel = this.overlay.createLabel('E · Поставить', 21);
+    this.blockedLabel = this.overlay.createLabel('Нет места или опоры для ящика', 17);
+    this.touchPanel = this.overlay.createPanel('#30394a', 0.92);
+    this.touchLabel = this.overlay.createLabel('Взять / поставить', 16);
     this.touchPanel.scale.set(180, 58, 1);
     this.touchLabel.position.z = 0.1;
     this.overlay.scene.add(this.takeLabel, this.placeLabel, this.blockedLabel, this.touchPanel, this.touchLabel);

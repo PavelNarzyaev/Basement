@@ -8,14 +8,14 @@ import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
 import type { IPlayerInput } from '../../input/contracts/IPlayerInput';
 import { ControlMode } from '../../input/contracts/ControlMode';
 import { DesktopInput } from '../../input/runtime/DesktopInput';
-import { VirtualJoystick } from '../../input/runtime/VirtualJoystick';
+import type { IVirtualJoystick } from '../../input/contracts/IVirtualJoystick';
 import { TouchInput } from '../../input/runtime/TouchInput';
 import type { IPlayer } from '../../player/contracts/IPlayer';
 import { Player } from '../../player/runtime/Player';
 import type { IScene } from '../../scenes/contracts/IScene';
 import type { StartupSettingsDto } from '../../startup/contracts/StartupSettingsDto';
-import { StartupSettingsDialog } from '../../startup/runtime/StartupSettingsDialog';
-import { InteractionPrompt } from '../../ui/runtime/InteractionPrompt';
+import type { IStartupSettingsDialog } from '../../startup/contracts/IStartupSettingsDialog';
+import type { IInteractionPrompt } from '../../interaction_prompt/contracts/IInteractionPrompt';
 
 export class Application {
   private readonly renderer: WebGLRenderer;
@@ -25,21 +25,21 @@ export class Application {
   private cameraController: ICameraController | undefined;
   private collisionWorld: ICollisionWorld | undefined;
   private interactionController: CrateInteractionController | undefined;
-  private readonly interactionPrompt: InteractionPrompt;
   private readonly movement = new Vector3();
   private readonly worldUp = new Vector3(0, 1, 0);
   private previousTime: number | undefined;
   private readonly status = document.createElement('p');
   private isDisposed = false;
   private readonly resizeObserver: ResizeObserver;
-  private readonly joystick: VirtualJoystick;
-  private readonly startupSettingsDialog: StartupSettingsDialog;
 
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly scene: IScene) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly scene: IScene,
+    private readonly joystick: IVirtualJoystick,
+    private readonly interactionPrompt: IInteractionPrompt,
+    private readonly startupSettingsDialog: IStartupSettingsDialog,
+  ) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
-    this.joystick = new VirtualJoystick(canvas);
-    this.interactionPrompt = new InteractionPrompt(canvas);
-    this.startupSettingsDialog = new StartupSettingsDialog(canvas, this.startGameplay);
     this.camera.position.set(2.5, 1.8, 3.5);
     this.camera.lookAt(0, 0, 0);
     this.status.className = 'scene-status';
@@ -85,7 +85,7 @@ export class Application {
       this.cameraController.update(this.player.object.position);
       this.scene.scene.add(this.player.object);
       this.status.hidden = true;
-      this.startupSettingsDialog.open();
+      this.startupSettingsDialog.open(this.startGameplay);
     } catch (error) {
       if (this.isDisposed) return;
       this.disposeGameplay();

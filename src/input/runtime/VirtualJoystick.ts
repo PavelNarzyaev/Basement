@@ -1,15 +1,18 @@
 import { CircleGeometry, Group, RingGeometry, Vector2 } from 'three';
-import type { WebGLRenderer } from 'three';
-import { CanvasOverlay } from '../../ui/runtime/CanvasOverlay';
-import type { IJoystickView } from '../contracts/IJoystickView';
+import type { BufferGeometry, Mesh, MeshBasicMaterial, WebGLRenderer } from 'three';
+import type { ICanvasOverlay } from '../../canvas_overlay/contracts/ICanvasOverlay';
+import type { ICanvasOverlayFactory } from '../../canvas_overlay/contracts/ICanvasOverlayFactory';
+import type { IVirtualJoystick } from '../contracts/IVirtualJoystick';
 
-export class VirtualJoystick implements IJoystickView {
-  private readonly overlay = new CanvasOverlay();
+export class VirtualJoystick implements IVirtualJoystick {
+  private readonly overlay: ICanvasOverlay;
   private readonly joystick = new Group();
-  private readonly knob = this.overlay.createMesh(new CircleGeometry(0.4, 48), '#f5eee4', 0.8);
+  private readonly knob: Mesh<BufferGeometry, MeshBasicMaterial>;
   private radius = 64;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(private readonly canvas: HTMLCanvasElement, overlayFactory: ICanvasOverlayFactory) {
+    this.overlay = overlayFactory.create();
+    this.knob = this.overlay.createMesh(new CircleGeometry(0.4, 48), '#f5eee4', 0.8);
     const base = this.overlay.createMesh(new CircleGeometry(1, 64), '#202632', 0.55);
     const rim = this.overlay.createMesh(new RingGeometry(0.97, 1, 64), '#f5eee4', 0.65);
     rim.position.z = 0.1;
