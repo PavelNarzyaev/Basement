@@ -1,7 +1,6 @@
 import {
   Color,
-  DirectionalLight,
-  HemisphereLight,
+  PointLight,
   Scene,
   Vector3,
 } from 'three';
@@ -13,6 +12,9 @@ import type { IScene } from '../contracts/IScene';
 
 export class BasementScene implements IScene {
   private static readonly modelUrl = `${import.meta.env.BASE_URL}models/basement/basement.glb`;
+  private static readonly lampColor = '#ffdfaa';
+  private static readonly lampIntensity = 5;
+  private static readonly lampDistance = 150;
 
   readonly scene = new Scene();
   // Leave 0.05 units above the measured floor so gravity settles the collider.
@@ -21,10 +23,6 @@ export class BasementScene implements IScene {
 
   constructor(private readonly objectDisposer: IObject3DDisposer) {
     this.scene.background = new Color('#151a24');
-    const hemisphereLight = new HemisphereLight('#dceaff', '#423024', 2);
-    const keyLight = new DirectionalLight('#fff1db', 3);
-    keyLight.position.set(3, 8, 5);
-    this.scene.add(hemisphereLight, keyLight);
   }
 
   async load(): Promise<Object3D | undefined> {
@@ -33,6 +31,7 @@ export class BasementScene implements IScene {
       this.objectDisposer.dispose(model.scene);
       return;
     }
+    this.addLampLights(model.scene);
     this.scene.add(model.scene);
     return model.scene;
   }
@@ -41,5 +40,24 @@ export class BasementScene implements IScene {
     this.isDisposed = true;
     this.objectDisposer.dispose(this.scene);
     this.scene.clear();
+  }
+
+  private addLampLights(model: Object3D): void {
+    const markers: Object3D[] = [];
+    model.traverse((object) => {
+      if (typeof object.userData.lightId === 'string') markers.push(object);
+    });
+
+    for (const marker of markers) {
+      const light = new PointLight(
+        BasementScene.lampColor,
+        BasementScene.lampIntensity,
+        BasementScene.lampDistance,
+        2,
+      );
+      light.name = `${marker.userData.lightId}_PointLight`;
+      light.castShadow = false;
+      marker.add(light);
+    }
   }
 }
