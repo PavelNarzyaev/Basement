@@ -1,8 +1,9 @@
-import { Vector3 } from 'three';
+import { CircleGeometry, Vector3 } from 'three';
 import type { BufferGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, WebGLRenderer } from 'three';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
 import type { ICanvasOverlay } from '../../canvas_overlay/contracts/ICanvasOverlay';
 import type { ICanvasOverlayFactory } from '../../canvas_overlay/contracts/ICanvasOverlayFactory';
+import { touchControlLayout } from '../../input/contracts/touchControlLayout';
 import type { IInteractionPrompt } from '../contracts/IInteractionPrompt';
 
 export class InteractionPrompt implements IInteractionPrompt {
@@ -11,31 +12,32 @@ export class InteractionPrompt implements IInteractionPrompt {
   private readonly placeLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly blockedLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly touchPanel: Mesh<BufferGeometry, MeshBasicMaterial>;
-  private readonly touchLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly touchTakeLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly touchPlaceLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly screenPosition = new Vector3();
   private readonly events = new AbortController();
   private isTouchEnabled = false;
   private isPressed = false;
   private width = 1;
   private height = 1;
+  private touchRadius: number = touchControlLayout.maximumRadius;
 
   constructor(canvas: HTMLCanvasElement, overlayFactory: ICanvasOverlayFactory) {
     this.overlay = overlayFactory.create();
     this.takeLabel = this.overlay.createLabel('E · Взять', 21);
     this.placeLabel = this.overlay.createLabel('E · Поставить', 21);
     this.blockedLabel = this.overlay.createLabel('Нет места или опоры для ящика', 17);
-    this.touchPanel = this.overlay.createPanel('#30394a', 0.92);
-    this.touchLabel = this.overlay.createLabel('Взять / поставить', 16);
-    this.touchPanel.scale.set(180, 58, 1);
-    this.touchLabel.position.z = 0.1;
-    this.overlay.scene.add(this.takeLabel, this.placeLabel, this.blockedLabel, this.touchPanel, this.touchLabel);
+    this.touchPanel = this.overlay.createMesh(new CircleGeometry(1, 64), '#30394a', 0.92);
+    this.touchTakeLabel = this.overlay.createLabel('взять', 16);
+    this.touchPlaceLabel = this.overlay.createLabel('поставить', 16);
+    this.overlay.scene.add(this.takeLabel, this.placeLabel, this.blockedLabel, this.touchPanel, this.touchTakeLabel, this.touchPlaceLabel);
     // Registered before TouchInput: interaction taps must not also rotate the camera.
     canvas.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 || !this.touchPanel.visible || !this.overlay.scene.visible) return;
       const bounds = canvas.getBoundingClientRect();
       const x = event.clientX - bounds.left - this.touchPanel.position.x;
       const y = event.clientY - bounds.top - this.touchPanel.position.y;
-      if (Math.abs(x) > 90 || Math.abs(y) > 29) return;
+      if (x * x + y * y > this.touchRadius * this.touchRadius) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       this.isPressed = true;
@@ -62,8 +64,16 @@ export class InteractionPrompt implements IInteractionPrompt {
     this.blockedLabel.position.set(width / 2, height - 110, 0);
     const labelScale = Math.min(1, (width - 24) / 512);
     this.blockedLabel.scale.set(512 * labelScale, 64 * labelScale, 1);
-    this.touchPanel.position.set(width - 110, height - 65, 0);
-    this.touchLabel.position.set(width - 110, height - 65, 0.1);
+    this.touchRadius = Math.min(touchControlLayout.maximumRadius, width * touchControlLayout.widthRatio, height * touchControlLayout.heightRatio);
+    const x = width - touchControlLayout.margin - this.touchRadius;
+    const y = height - touchControlLayout.margin - this.touchRadius;
+    this.touchPanel.position.set(x, y, 0);
+    this.touchPanel.scale.set(this.touchRadius, this.touchRadius, 1);
+    const touchLabelScale = this.touchRadius / touchControlLayout.maximumRadius;
+    for (const label of [this.touchTakeLabel, this.touchPlaceLabel]) {
+      label.position.set(x, y, 0.1);
+      label.scale.set(512 * touchLabelScale, 64 * touchLabelScale, 1);
+    }
   }
 
   update(candidate: ICarryable | undefined, carriedObject: ICarryable | undefined, hasBlockedInteraction: boolean, camera: PerspectiveCamera): void {
@@ -71,7 +81,8 @@ export class InteractionPrompt implements IInteractionPrompt {
     this.placeLabel.visible = Boolean(carriedObject) && !this.isTouchEnabled;
     this.blockedLabel.visible = hasBlockedInteraction;
     this.touchPanel.visible = this.isTouchEnabled && Boolean(candidate || carriedObject);
-    this.touchLabel.visible = this.touchPanel.visible;
+    this.touchTakeLabel.visible = this.touchPanel.visible && !carriedObject;
+    this.touchPlaceLabel.visible = this.touchPanel.visible && Boolean(carriedObject);
     this.takeLabel.visible = false;
     if (!candidate) return;
     this.screenPosition.copy(candidate.collider.center);

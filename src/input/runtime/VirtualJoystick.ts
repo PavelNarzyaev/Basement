@@ -3,6 +3,7 @@ import type { BufferGeometry, Mesh, MeshBasicMaterial, WebGLRenderer } from 'thr
 import type { ICanvasOverlay } from '../../canvas_overlay/contracts/ICanvasOverlay';
 import type { ICanvasOverlayFactory } from '../../canvas_overlay/contracts/ICanvasOverlayFactory';
 import type { IVirtualJoystick } from '../contracts/IVirtualJoystick';
+import { touchControlLayout } from '../contracts/touchControlLayout';
 
 export class VirtualJoystick implements IVirtualJoystick {
   private readonly overlay: ICanvasOverlay;
@@ -27,8 +28,8 @@ export class VirtualJoystick implements IVirtualJoystick {
 
   resize(width: number, height: number): void {
     this.overlay.resize(width, height);
-    this.radius = Math.min(70, width * 0.18, height * 0.22);
-    const margin = 28;
+    this.radius = Math.min(touchControlLayout.maximumRadius, width * touchControlLayout.widthRatio, height * touchControlLayout.heightRatio);
+    const margin = touchControlLayout.margin;
     this.joystick.position.set(margin + this.radius, height - margin - this.radius, 0);
     this.joystick.scale.set(this.radius, this.radius, 1);
     this.setJoystickPosition(0, 0);
