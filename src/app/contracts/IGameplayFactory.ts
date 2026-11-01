@@ -1,3 +1,4 @@
+import type { IGameplaySession } from './IGameplaySession';
 import type { Object3D, PerspectiveCamera } from 'three';
 import type { ICameraController } from '../../camera/contracts/ICameraController';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
@@ -10,6 +11,7 @@ import type { IPlayer } from '../../player/contracts/IPlayer';
 import type { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 
 export interface IGameplayFactory {
+  createSession(player: IPlayer, world: ICollisionWorld, crates: readonly ICarryable[], camera: PerspectiveCamera): IGameplaySession;
   createCarryable(model: Object3D): ICarryable;
   createCollisionWorld(model: Object3D, boxes: readonly OrientedBoxDto[]): ICollisionWorld;
   createPlayer(

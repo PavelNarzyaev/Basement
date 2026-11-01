@@ -1,3 +1,4 @@
+import { GameplaySession } from '../runtime/GameplaySession';
 import assert from 'node:assert/strict';
 import { test, type TestContext } from 'node:test';
 import { Object3D, Scene, Vector3 } from 'three';
@@ -48,6 +49,9 @@ function createFixture(context: TestContext, stage: 'scene' | 'player' | 'audio'
   const dialog = { ...overlay('dialog'), open() { hasOpenedDialog = true; } };
   let signal!: AbortSignal;
   const factory = {
+    createSession(player: never, world: never, crates: never, camera: never) {
+      return new GameplaySession({} as never, scene as never, camera, {} as never, {} as never, factory as never, {} as never, audio as never, player, world, crates);
+    },
     createCollisionWorld() { return world; },
     async createPlayer(_world: unknown, _spawn: unknown, onProgress: (percentage: number) => void, loadingSignal: AbortSignal) {
       signal = loadingSignal;

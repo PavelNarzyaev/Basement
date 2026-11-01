@@ -1,3 +1,4 @@
+import { GameplaySession } from './app/runtime/GameplaySession';
 import { Bombardment } from './bombardment/runtime/Bombardment';
 import { CeilingDebris } from './ceiling_debris/runtime/CeilingDebris';
 import { Application } from './app/runtime/Application';
@@ -38,6 +39,9 @@ const joystick = new VirtualJoystick(canvas, overlayFactory);
 const interactionPrompt = new InteractionPrompt(canvas, overlayFactory);
 const startupSettingsDialog = new StartupSettingsDialog(canvas, overlayFactory);
 const gameplayFactory: IGameplayFactory = {
+  createSession(player, world, crates, camera) {
+    return new GameplaySession(canvas, scene, camera, joystick, interactionPrompt, gameplayFactory, objective, bombardment, player, world, crates);
+  },
   createCarryable(model) {
     return new MovableCrate(model);
   },
@@ -58,7 +62,9 @@ const gameplayFactory: IGameplayFactory = {
     return controlMode === ControlMode.Touch ? new TouchInput(canvas, joystick) : new DesktopInput(canvas);
   },
 };
-const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, new CrateObjective(), new Bombardment(dust, ceilingDebris, import.meta.env.BASE_URL));
+const objective = new CrateObjective();
+const bombardment = new Bombardment(dust, ceilingDebris, import.meta.env.BASE_URL);
+const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, objective, bombardment);
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => application.dispose());
