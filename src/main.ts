@@ -1,3 +1,4 @@
+import { Bombardment } from './bombardment/runtime/Bombardment';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Application } from './app/runtime/Application';
 import type { IGameplayFactory } from './app/contracts/IGameplayFactory';
@@ -65,7 +66,7 @@ const gameplayFactory: IGameplayFactory = {
     return controlMode === ControlMode.Touch ? new TouchInput(canvas, joystick) : new DesktopInput(canvas);
   },
 };
-const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, new CrateObjective());
+const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, new CrateObjective(), new Bombardment());
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => application.dispose());

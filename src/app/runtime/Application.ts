@@ -1,3 +1,4 @@
+import type { IBombardment } from '../../bombardment/contracts/IBombardment';
 import { PerspectiveCamera, Vector3, WebGLRenderer } from 'three';
 import type { ICrateInteractionController } from '../../carrying/contracts/ICrateInteractionController';
 import type { ICameraController } from '../../camera/contracts/ICameraController';
@@ -38,6 +39,7 @@ export class Application {
     private readonly startupSettingsDialog: IStartupSettingsDialog,
     private readonly gameplayFactory: IGameplayFactory,
     private readonly objective: ICrateObjective,
+    private readonly bombardment: IBombardment,
   ) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
     this.camera.position.set(2.5, 1.8, 3.5);
@@ -63,6 +65,7 @@ export class Application {
     this.joystick.dispose();
     this.interactionPrompt.dispose();
     this.objective.dispose();
+    this.bombardment.dispose();
     this.status.remove();
     this.scene.dispose();
     this.renderer.dispose();
@@ -98,6 +101,8 @@ export class Application {
       this.cameraController = this.gameplayFactory.createCameraController(this.camera, this.collisionWorld, cameraYaw);
       this.cameraController.update(this.player.object.position, cameraYaw);
       this.scene.scene.add(this.player.object);
+      await this.bombardment.load();
+      if (this.isDisposed) return;
       this.status.hidden = true;
       this.startupSettingsDialog.open(this.startGameplay);
     } catch (error) {
@@ -135,11 +140,14 @@ export class Application {
       this.joystick.show();
       this.interactionPrompt.enableTouch();
     }
+    this.bombardment.start();
+    this.previousTime = undefined;
     this.input = this.gameplayFactory.createInput(settings.controlMode);
     this.objective.start(this.crates, this.scene.trolleyCargoZone, this.restartGameplay);
   };
 
   private readonly restartGameplay = (): void => {
+    this.bombardment.start();
     this.player!.restart();
     this.crates.forEach((crate, index) => {
       const spawn = this.scene.movableCrates[index]!;
@@ -179,6 +187,7 @@ export class Application {
       this.cameraController.update(
         this.player.object.position, this.player.object.rotation.y - Math.PI, this.player.carriedObject?.collider,
       );
+      this.bombardment.update(this.camera);
       this.interactionPrompt.update(
         this.interactionController.candidate, this.interactionController.canPutDown, this.camera
       );
