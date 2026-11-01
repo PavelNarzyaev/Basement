@@ -135,6 +135,41 @@ test('restart stops previous audio and starts a new interval', (context) => {
   assert.equal(fixture.burstCount, 0);
 });
 
+for (const restartTime of [13.5, 15.3, 50.5]) {
+  test(`restart during effects at ${restartTime}s clears the previous impact`, (context) => {
+    const fixture = createFixture(context);
+    fixture.bombardment.start();
+    fixture.update(restartTime);
+    const previousSources = [...fixture.clock.sources];
+    const previousBurstCount = fixture.burstCount;
+    const previousResetCount = fixture.resetCount;
+
+    fixture.bombardment.start();
+    assert.ok(previousSources.every(source => source.isStopped));
+    assert.equal(fixture.strengths.at(-1), 0);
+    assert.equal(fixture.resetCount, previousResetCount + 1);
+    assert.deepEqual(fixture.clock.sources.slice(-4).map(source => source.startTime),
+      [restartTime, restartTime + 50, restartTime + 13, restartTime + 15.2]);
+
+    // Old audio completion events can arrive after the new sources have started.
+    previousSources.forEach(source => source.onended!());
+    const camera = new PerspectiveCamera();
+    const initialRotation = camera.quaternion.clone();
+    fixture.clock.currentTime = restartTime + 0.1;
+    fixture.bombardment.update(camera, new Vector3());
+    assert.ok(camera.quaternion.equals(initialRotation));
+    assert.equal(fixture.burstCount, previousBurstCount);
+    assert.equal(fixture.strengths.at(-1), 0);
+
+    fixture.update(restartTime + 15);
+    assert.equal(fixture.burstCount, previousBurstCount + 1);
+    assert.equal(fixture.strengths.at(-1), 1);
+    const newSources = fixture.clock.sources.slice(-4);
+    fixture.bombardment.start();
+    assert.ok(newSources.every(source => source.isStopped));
+  });
+}
+
 test('visibility changes before start and after disposal do not schedule audio', (context) => {
   const fixture = createFixture(context);
   fixture.setHidden(true);

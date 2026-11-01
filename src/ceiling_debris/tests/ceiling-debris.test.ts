@@ -3,6 +3,21 @@ import { test } from 'node:test';
 import { Box3, Matrix4, Vector3 } from 'three';
 import { CeilingDebris } from '../runtime/CeilingDebris';
 
+test('reset during a burst prevents particles from returning on subsequent frames', (context) => {
+  context.mock.method(Math, 'random', () => 0.5);
+  const debris = new CeilingDebris();
+  context.after(() => debris.dispose());
+  debris.initialize(new Box3(new Vector3(-15, 0, -30), new Vector3(15, 4, 30)));
+  debris.burst(new Vector3(), new Vector3(0, 0, -1));
+  debris.update(0.1);
+  assert.equal(debris.object.count, 120);
+  debris.reset();
+  for (let frame = 0; frame < 180; frame++) debris.update(1 / 60);
+  assert.equal(debris.object.count, 0);
+  debris.burst(new Vector3(), new Vector3(0, 0, -1));
+  assert.equal(debris.object.count, 120);
+});
+
 test('debris starts above the ceiling, falls below the floor and stops updating', (context) => {
   context.mock.method(Math, 'random', () => 0.5);
   const debris = new CeilingDebris();
