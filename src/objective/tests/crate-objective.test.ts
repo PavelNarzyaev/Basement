@@ -4,13 +4,20 @@ import { Group, Vector3 } from 'three';
 import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
 import { CrateObjectiveProgress } from '../runtime/CrateObjectiveProgress';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
-import { trolleyCargoZone } from '../../scenes/contracts/trolleyCargoZone';
+import { SceneLayout } from '../../scenes/runtime/SceneLayout';
 import { BasementGeometryFixture } from '../../carrying/tests/BasementGeometryFixture';
 import { Ray } from 'three';
 import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
 
 test('counts a crate resting on the actual basement trolley deck', async () => {
   const model = await BasementGeometryFixture.loadGeometry('../../../public/models/basement/basement.glb');
+  const layout = new SceneLayout(model);
+  const trolleyCargoZone = layout.cargoZone;
+  assert.equal(layout.cratePlacements.length, 5);
+  assert.ok(layout.playerSpawn.position.distanceTo(new Vector3(0, 0.154292, -13)) < 0.00001);
+  assert.ok(Math.abs(Math.cos(layout.playerSpawn.rotationY) + 1) < 0.00001);
+  assert.ok(layout.cratePlacements[0]!.center.distanceTo(new Vector3(-2.072395, 1.223902, 6.682539)) < 0.00001);
+  assert.ok(Math.abs(layout.cratePlacements[0]!.rotationY - 2.240222) < 0.00001);
   const world = new CollisionWorld(model);
   const origin = trolleyCargoZone.center.clone();
   origin.y = 4;
