@@ -22,7 +22,7 @@ export class GameplaySession implements IGameplaySession {
 
   private readonly interactionController: ICrateInteractionController;
 
-  private readonly movement = new Vector3();
+  private readonly worldMovementDirection = new Vector3();
   private readonly worldUp = new Vector3(0, 1, 0);
 
   private shouldResetDelta = false;
@@ -76,16 +76,16 @@ export class GameplaySession implements IGameplaySession {
     this.canvas.focus();
   };
 
-  update(delta: number): void {
+  update(deltaSeconds: number): void {
     if (!this.input) return;
     if (this.shouldResetDelta) {
-      delta = 0;
+      deltaSeconds = 0;
       this.shouldResetDelta = false;
     }
     const input = this.input.read();
     this.cameraController.addPitchDelta(input.pitchDeltaRadians);
-    this.movement.set(input.movementX, 0, input.movementZ).applyAxisAngle(this.worldUp, this.cameraController.yaw);
-    this.player.update(delta, this.movement, input.yawDeltaRadians);
+    this.worldMovementDirection.set(input.movementX, 0, input.movementZ).applyAxisAngle(this.worldUp, this.cameraController.yaw);
+    this.player.update(deltaSeconds, this.worldMovementDirection, input.yawDeltaRadians);
     this.interactionController.update(input.isInteractionPressed);
     this.objective.update(this.player.carriedObject);
     this.cameraController.update(
@@ -93,7 +93,7 @@ export class GameplaySession implements IGameplaySession {
     );
     this.bombardment.update(this.camera, this.player.object.position);
     this.interactionPrompt.update(
-      this.interactionController.candidate, this.interactionController.canPutDown, this.camera
+      this.interactionController.pickupCandidate, this.interactionController.canPutDown, this.camera
     );
   }
 

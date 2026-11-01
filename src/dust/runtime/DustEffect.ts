@@ -119,9 +119,9 @@ export class DustEffect implements IDustEffect {
     this.impactStrength = strength;
   }
 
-  update(delta: number): void {
+  update(deltaSeconds: number): void {
     // Discard time spent in a background tab so returning does not jump the simulation.
-    const step = Math.min(delta, 0.1);
+    const step = Math.min(deltaSeconds, 0.1);
     const blend = 1 - Math.exp(-step * 2);
     this.uniforms.density.value += (this.settings.density - this.uniforms.density.value) * blend;
     this.uniforms.opacity.value += (this.settings.opacity - this.uniforms.opacity.value) * blend;

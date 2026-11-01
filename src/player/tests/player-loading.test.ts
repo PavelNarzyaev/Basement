@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AnimationClip, Box3, BoxGeometry, Group, MeshStandardMaterial, Skeleton, SkinnedMesh, Vector3 } from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
-import type { ICarryPlacement } from '../../carrying/contracts/ICarryPlacement';
+import type { ICarryPlacementSolver } from '../../carrying/contracts/ICarryPlacementSolver';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
-import { Object3DDisposer } from '../../disposer/runtime/Object3DDisposer';
+import { Object3DResourceDisposer } from '../../disposer/runtime/Object3DResourceDisposer';
 import { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
 import { PlayerFactory } from '../runtime/PlayerFactory';
 
@@ -38,8 +38,8 @@ for (const outcome of ['cancel', 'download-error', 'invalid-clips', 'player-erro
       },
     } as ICollisionWorld;
     let progressCount = 0;
-    const factory = new PlayerFactory(new Object3DDisposer(), '/');
-    const loading = factory.create(world, new PlayerSpawnDto(new Vector3(), 0), {} as ICarryPlacement,
+    const factory = new PlayerFactory(new Object3DResourceDisposer(), '/');
+    const loading = factory.create(world, new PlayerSpawnDto(new Vector3(), 0), {} as ICarryPlacementSolver,
       () => progressCount++, controller.signal);
     if (outcome === 'cancel') {
       controller.abort();
@@ -63,6 +63,6 @@ for (const outcome of ['cancel', 'download-error', 'invalid-clips', 'player-erro
     const expectedDisposals = outcome === 'download-error' ? 0 : 1;
     assert.equal(geometryDisposals, expectedDisposals);
     assert.equal(skeletonDisposal.mock.callCount(), expectedDisposals);
-    if (outcome === 'download-error') new Object3DDisposer().dispose(model);
+    if (outcome === 'download-error') new Object3DResourceDisposer().dispose(model);
   });
 }

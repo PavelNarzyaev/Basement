@@ -1,7 +1,7 @@
 import { MathUtils, Ray, Sphere, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
-import type { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import type { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import type { ICameraController } from '../contracts/ICameraController';
 
 export class ThirdPersonCameraController implements ICameraController {
@@ -24,7 +24,7 @@ export class ThirdPersonCameraController implements ICameraController {
     this.pitch = MathUtils.clamp(this.pitch + pitchDeltaRadians, -0.35, 1.15);
   }
 
-  update(target: Vector3, yaw: number, ignoredBox?: OrientedBoxDto): void {
+  update(target: Vector3, yaw: number, ignoredBox?: YawBoxDto): void {
     this.horizontalAngle = yaw;
     this.target.copy(target);
     this.target.y += 0.35;

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { BoxGeometry, Group, Mesh, Ray, Sphere, Vector3 } from 'three';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import { CollisionWorld } from '../runtime/CollisionWorld';
-import { OrientedBoxDto } from '../contracts/OrientedBoxDto';
+import { YawBoxDto } from '../contracts/YawBoxDto';
 
 test('excludes non-solid objects and their children from every collision query', () => {
   for (const hasCustomProperties of [true, false]) {
@@ -17,7 +17,7 @@ test('excludes non-solid objects and their children from every collision query',
     wall.position.x = 5;
     model.add(wall);
     const world = new CollisionWorld(model);
-    assert.equal(world.hasBoxCollision(new OrientedBoxDto(new Vector3(0.9, 0, 0), new Vector3(0.2, 0.2, 0.2))), false);
+    assert.equal(world.hasBoxCollision(new YawBoxDto(new Vector3(0.9, 0, 0), new Vector3(0.2, 0.2, 0.2))), false);
     assert.equal(world.hasSphereCollision(new Sphere(new Vector3(0.9, 0, 0), 0.2)), false);
     assert.equal(world.intersectCapsule(new Capsule(new Vector3(0.9, -0.3, 0), new Vector3(0.9, 0.3, 0), 0.2)), false);
     const hit = world.castRay(new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0)))!;

@@ -5,10 +5,10 @@ import { CeilingDebris } from './ceiling_debris/runtime/CeilingDebris';
 import { Application } from './app/runtime/Application';
 import type { IGameplayFactory } from './app/contracts/IGameplayFactory';
 import { ThirdPersonCameraController } from './camera/runtime/ThirdPersonCameraController';
-import { CarryPlacement } from './carrying/runtime/CarryPlacement';
+import { CarryPlacementSolver } from './carrying/runtime/CarryPlacementSolver';
 import { CrateInteractionController } from './carrying/runtime/CrateInteractionController';
 import { MovableCrate } from './carrying/runtime/MovableCrate';
-import { BoxCollision } from './collision/runtime/BoxCollision';
+import { YawBoxCollision } from './collision/runtime/YawBoxCollision';
 import { CollisionWorld } from './collision/runtime/CollisionWorld';
 import { CanvasOverlayFactory } from './canvas_overlay/runtime/CanvasOverlayFactory';
 import { VirtualJoystick } from './input/runtime/VirtualJoystick';
@@ -17,7 +17,7 @@ import { DesktopInput } from './input/runtime/DesktopInput';
 import { TouchInput } from './input/runtime/TouchInput';
 import { InteractionPrompt } from './interaction_prompt/runtime/InteractionPrompt';
 import { StartupSettingsDialog } from './startup/runtime/StartupSettingsDialog';
-import { Object3DDisposer } from './disposer/runtime/Object3DDisposer';
+import { Object3DResourceDisposer } from './disposer/runtime/Object3DResourceDisposer';
 import { DustEffect } from './dust/runtime/DustEffect';
 import { BasementScene } from './scenes/runtime/BasementScene';
 import { PlayerFactory } from './player/runtime/PlayerFactory';
@@ -30,7 +30,7 @@ if (!canvas) {
   throw new Error('Scene canvas is missing from index.html.');
 }
 
-const objectDisposer = new Object3DDisposer();
+const objectDisposer = new Object3DResourceDisposer();
 const playerFactory = new PlayerFactory(objectDisposer, import.meta.env.BASE_URL);
 const dust = new DustEffect();
 const ceilingDebris = new CeilingDebris();
@@ -50,7 +50,7 @@ const gameplayFactory: IGameplayFactory = {
     return new CollisionWorld(model, boxes);
   },
   createPlayer(world, spawn, onProgress, signal) {
-    const carryPlacement = new CarryPlacement(world, new BoxCollision());
+    const carryPlacement = new CarryPlacementSolver(world, new YawBoxCollision());
     return playerFactory.create(world, spawn, carryPlacement, onProgress, signal);
   },
   createInteractionController(player, crates, world) {

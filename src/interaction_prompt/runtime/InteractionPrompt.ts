@@ -57,16 +57,16 @@ export class InteractionPrompt implements IInteractionPrompt {
     }
   }
 
-  update(candidate: ICarryable | undefined, canPutDown: boolean, camera: PerspectiveCamera): void {
-    this.overlay.scene.visible = Boolean(candidate || canPutDown);
+  update(pickupCandidate: ICarryable | undefined, canPutDown: boolean, camera: PerspectiveCamera): void {
+    this.overlay.scene.visible = Boolean(pickupCandidate || canPutDown);
     this.placeLabel.visible = canPutDown && !this.isTouchEnabled;
-    this.touchPanel.visible = this.isTouchEnabled && Boolean(candidate || canPutDown);
+    this.touchPanel.visible = this.isTouchEnabled && Boolean(pickupCandidate || canPutDown);
     this.touchTakeLabel.visible = this.touchPanel.visible && !canPutDown;
     this.touchPlaceLabel.visible = this.touchPanel.visible && canPutDown;
     this.takeLabel.visible = false;
-    if (!candidate) return;
-    this.screenPosition.copy(candidate.collider.center);
-    this.screenPosition.y += candidate.collider.halfSize.y + 0.25;
+    if (!pickupCandidate) return;
+    this.screenPosition.copy(pickupCandidate.collider.center);
+    this.screenPosition.y += pickupCandidate.collider.halfSize.y + 0.25;
     camera.updateWorldMatrix(true, false);
     this.screenPosition.project(camera);
     this.takeLabel.visible = !this.isTouchEnabled && Math.abs(this.screenPosition.x) < 1

@@ -1,6 +1,6 @@
 import { Group, MathUtils, Vector3 } from 'three';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
-import type { ICarryPlacement } from '../../carrying/contracts/ICarryPlacement';
+import type { ICarryPlacementSolver } from '../../carrying/contracts/ICarryPlacementSolver';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IPlayer } from '../contracts/IPlayer';
 import type { IPlayerVisual } from '../contracts/IPlayerVisual';
@@ -12,20 +12,20 @@ export class Player implements IPlayer {
   readonly object = new Group();
   private readonly movement: PlayerMovement;
   private readonly spawnRotationY: number;
-  private readonly movementVelocity = new Vector3();
+  private readonly desiredHorizontalVelocity = new Vector3();
   private readonly stateMachine = new PlayerStateMachine();
   private readonly holdingCenter = new Vector3();
   private readonly playerCenter = new Vector3();
   private readonly stepStart = new Vector3();
   private traveledDistance = 0;
-  private speed = 0;
+  private actualHorizontalSpeed = 0;
   private targetYawRadians = 0;
   private accumulator = 0;
 
   constructor(
     world: ICollisionWorld,
     spawn: PlayerSpawnDto,
-    private readonly carryPlacement: ICarryPlacement,
+    private readonly carryPlacement: ICarryPlacementSolver,
     private readonly visual: IPlayerVisual,
   ) {
     this.movement = new PlayerMovement(world, spawn.position);
@@ -36,10 +36,10 @@ export class Player implements IPlayer {
     this.reset();
   }
 
-  update(delta: number, movement: Vector3, yawDeltaRadians = 0): void {
+  update(deltaSeconds: number, worldMovementDirection: Vector3, yawDeltaRadians = 0): void {
     this.targetYawRadians += yawDeltaRadians;
-    this.movementVelocity.set(movement.x, 0, movement.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.speed);
-    const elapsed = Math.min(delta, 0.1);
+    this.desiredHorizontalVelocity.set(worldMovementDirection.x, 0, worldMovementDirection.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.speed);
+    const elapsed = Math.min(deltaSeconds, 0.1);
     this.accumulator += elapsed;
     this.traveledDistance = 0;
     let simulatedTime = 0;
@@ -49,9 +49,9 @@ export class Player implements IPlayer {
       simulatedTime += PlayerMovement.fixedStep;
     }
     this.movement.collider.getCenter(this.object.position);
-    if (simulatedTime > 0) this.speed = this.traveledDistance / simulatedTime;
-    if (this.movementVelocity.lengthSq() === 0) this.speed = 0;
-    this.visual.update(elapsed, this.speed, Boolean(this.carriedObject));
+    if (simulatedTime > 0) this.actualHorizontalSpeed = this.traveledDistance / simulatedTime;
+    if (this.desiredHorizontalVelocity.lengthSq() === 0) this.actualHorizontalSpeed = 0;
+    this.visual.update(elapsed, this.actualHorizontalSpeed, Boolean(this.carriedObject));
   }
 
   get carriedObject(): ICarryable | undefined {
@@ -62,12 +62,12 @@ export class Player implements IPlayer {
     if (this.carriedObject) return false;
     this.movement.collider.getCenter(this.playerCenter);
     this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
-    return this.carryPlacement.canOccupy(crate, this.holdingCenter, this.object.rotation.y);
+    return this.carryPlacement.canOccupyPose(crate, this.holdingCenter, this.object.rotation.y);
   }
 
   canPutDown(): boolean {
     const crate = this.carriedObject;
-    return Boolean(crate && this.carryPlacement.findPlacement(crate, this.movement.collider));
+    return Boolean(crate && this.carryPlacement.findSupportedPlacement(crate, this.movement.collider));
   }
 
   tryPickUp(crate: ICarryable): boolean {
@@ -80,7 +80,7 @@ export class Player implements IPlayer {
   tryPutDown(): boolean {
     const crate = this.carriedObject;
     if (!crate) return false;
-    const center = this.carryPlacement.findPlacement(crate, this.movement.collider);
+    const center = this.carryPlacement.findSupportedPlacement(crate, this.movement.collider);
     if (!center) return false;
     crate.setPose(center, crate.collider.rotationY);
     this.stateMachine.stopCarrying();
@@ -95,14 +95,14 @@ export class Player implements IPlayer {
   private step(): void {
     this.stepStart.copy(this.movement.collider.start);
     this.rotate();
-    this.movement.integrateVelocity(this.movementVelocity);
+    this.movement.integrateVelocity(this.desiredHorizontalVelocity);
     for (const axis of ['x', 'z', 'y'] as const) {
       this.movement.moveAlongAxis(axis, this.carriedObject?.collider);
       const crate = this.carriedObject;
       if (crate) {
         this.movement.collider.getCenter(this.playerCenter);
         this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
-        if (this.carryPlacement.canMove(crate, this.holdingCenter, this.object.rotation.y)) {
+        if (this.carryPlacement.canSweepToPose(crate, this.holdingCenter, this.object.rotation.y)) {
           this.syncCarriedObject();
         } else {
           this.movement.rollbackAxis(axis);
@@ -130,7 +130,7 @@ export class Player implements IPlayer {
     const rotation = this.object.rotation.y + MathUtils.clamp(angle, -6 * PlayerMovement.fixedStep, 6 * PlayerMovement.fixedStep);
     this.movement.collider.getCenter(this.playerCenter);
     this.carryPlacement.getHoldingCenter(this.playerCenter, rotation, crate, this.holdingCenter);
-    if (this.carryPlacement.canMove(crate, this.holdingCenter, rotation)) {
+    if (this.carryPlacement.canSweepToPose(crate, this.holdingCenter, rotation)) {
       this.object.rotation.y = rotation;
       this.syncCarriedObject();
     } else {
@@ -149,7 +149,7 @@ export class Player implements IPlayer {
   restart(): void {
     if (this.carriedObject) this.stateMachine.stopCarrying();
     this.accumulator = 0;
-    this.speed = 0;
+    this.actualHorizontalSpeed = 0;
     this.traveledDistance = 0;
     this.reset();
     this.visual.update(0, 0, false);

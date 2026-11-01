@@ -1,11 +1,11 @@
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Vector3 } from 'three';
 import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
-import { BoxCollision } from '../../collision/runtime/BoxCollision';
+import { YawBoxCollision } from '../../collision/runtime/YawBoxCollision';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import { Player } from '../../player/runtime/Player';
 import type { IPlayerVisual } from '../../player/contracts/IPlayerVisual';
 import { MovableCrate } from '../runtime/MovableCrate';
-import { CarryPlacement } from '../runtime/CarryPlacement';
+import { CarryPlacementSolver } from '../runtime/CarryPlacementSolver';
 
 export class CarryingFixture {
   readonly scene = new Group();
@@ -26,7 +26,7 @@ export class CarryingFixture {
     this.scene.add(crateModel);
     this.crate = new MovableCrate(crateModel);
     this.world = new CollisionWorld(this.environment, [this.crate.collider]);
-    const carryPlacement = new CarryPlacement(this.world, new BoxCollision());
+    const carryPlacement = new CarryPlacementSolver(this.world, new YawBoxCollision());
     this.player = new Player(this.world, new PlayerSpawnDto(new Vector3(0, 0.001, 0), 0), carryPlacement, visual);
     this.scene.add(this.player.object);
   }

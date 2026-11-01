@@ -5,6 +5,6 @@ export interface ICeilingDebris {
   initialize(bounds: Box3): void;
   burst(position: Vector3, direction: Vector3): void;
   reset(): void;
-  update(delta: number): void;
+  update(deltaSeconds: number): void;
   dispose(): void;
 }

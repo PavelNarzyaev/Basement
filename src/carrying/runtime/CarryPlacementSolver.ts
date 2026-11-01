@@ -1,38 +1,38 @@
 import { Ray, Vector3 } from 'three';
 import type { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
-import type { IBoxCollision } from '../../collision/contracts/IBoxCollision';
-import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import type { IYawBoxCollision } from '../../collision/contracts/IYawBoxCollision';
+import { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import type { ICarryable } from '../contracts/ICarryable';
-import type { ICarryPlacement } from '../contracts/ICarryPlacement';
+import type { ICarryPlacementSolver } from '../contracts/ICarryPlacementSolver';
 
-export class CarryPlacement implements ICarryPlacement {
+export class CarryPlacementSolver implements ICarryPlacementSolver {
   private static readonly sweepStep = 0.03;
   private static readonly holdingHeight = 0.3;
   private readonly up = new Vector3(0, 1, 0);
-  private readonly trialBox = new OrientedBoxDto(new Vector3(), new Vector3());
+  private readonly trialBox = new YawBoxDto(new Vector3(), new Vector3());
   private readonly ray = new Ray(new Vector3(), new Vector3(0, -1, 0));
   private readonly supportSamples = [[0, 0], [-0.9, -0.9], [-0.9, 0.9], [0.9, -0.9], [0.9, 0.9]] as const;
 
-  constructor(private readonly world: ICollisionWorld, private readonly boxCollision: IBoxCollision) {}
+  constructor(private readonly world: ICollisionWorld, private readonly boxCollision: IYawBoxCollision) {}
 
   getHoldingCenter(playerCenter: Vector3, rotationY: number, crate: ICarryable, target: Vector3): Vector3 {
-    return target.set(0, CarryPlacement.holdingHeight, 0.43 + crate.collider.halfSize.z + 0.08)
+    return target.set(0, CarryPlacementSolver.holdingHeight, 0.43 + crate.collider.halfSize.z + 0.08)
       .applyAxisAngle(this.up, rotationY).add(playerCenter);
   }
 
-  canOccupy(crate: ICarryable, target: Vector3, rotationY: number): boolean {
+  canOccupyPose(crate: ICarryable, target: Vector3, rotationY: number): boolean {
     this.trialBox.center.copy(target);
     this.trialBox.halfSize.copy(crate.collider.halfSize);
     this.trialBox.rotationY = rotationY;
     return !this.world.hasBoxCollision(this.trialBox, crate.collider);
   }
 
-  canMove(crate: ICarryable, target: Vector3, rotationY: number): boolean {
+  canSweepToPose(crate: ICarryable, target: Vector3, rotationY: number): boolean {
     const box = crate.collider;
     const angle = Math.atan2(Math.sin(rotationY - box.rotationY), Math.cos(rotationY - box.rotationY));
     const travel = box.center.distanceTo(target) + Math.abs(angle) * box.halfSize.length();
-    const steps = Math.max(1, Math.ceil(travel / CarryPlacement.sweepStep));
+    const steps = Math.max(1, Math.ceil(travel / CarryPlacementSolver.sweepStep));
     this.trialBox.halfSize.copy(box.halfSize);
     for (let step = 1; step <= steps; step++) {
       this.trialBox.center.lerpVectors(box.center, target, step / steps);
@@ -42,7 +42,7 @@ export class CarryPlacement implements ICarryPlacement {
     return true;
   }
 
-  findPlacement(crate: ICarryable, playerCollider: Capsule): Vector3 | undefined {
+  findSupportedPlacement(crate: ICarryable, playerCollider: Capsule): Vector3 | undefined {
     const box = crate.collider;
     const rayHeight = box.center.y - box.halfSize.y + 0.12;
     let minimumHeight = Infinity;
@@ -64,6 +64,6 @@ export class CarryPlacement implements ICarryPlacement {
     this.trialBox.halfSize.copy(box.halfSize);
     this.trialBox.rotationY = box.rotationY;
     if (this.boxCollision.intersectCapsule(playerCollider, this.trialBox)) return undefined;
-    return this.canOccupy(crate, center, box.rotationY) ? center : undefined;
+    return this.canOccupyPose(crate, center, box.rotationY) ? center : undefined;
   }
 }

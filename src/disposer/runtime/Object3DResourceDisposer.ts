@@ -1,8 +1,8 @@
 import { Mesh, SkinnedMesh, Texture } from 'three';
 import type { BufferGeometry, Material, Object3D, Skeleton } from 'three';
-import type { IObject3DDisposer } from '../contracts/IObject3DDisposer';
+import type { IObject3DResourceDisposer } from '../contracts/IObject3DResourceDisposer';
 
-export class Object3DDisposer implements IObject3DDisposer {
+export class Object3DResourceDisposer implements IObject3DResourceDisposer {
   dispose(object: Object3D, ...additionalObjects: Object3D[]): void {
     const geometries = new Set<BufferGeometry>();
     const materials = new Set<Material>();

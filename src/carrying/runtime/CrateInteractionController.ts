@@ -8,7 +8,7 @@ export class CrateInteractionController implements ICrateInteractionController {
   private readonly direction = new Vector3();
   private readonly forward = new Vector3();
   private readonly ray = new Ray();
-  private selectedCrate: ICarryable | undefined;
+  private pickupCandidateValue: ICarryable | undefined;
   canPutDown = false;
 
   constructor(
@@ -17,8 +17,8 @@ export class CrateInteractionController implements ICrateInteractionController {
     private readonly world: ICollisionWorld,
   ) {}
 
-  get candidate(): ICarryable | undefined {
-    return this.selectedCrate;
+  get pickupCandidate(): ICarryable | undefined {
+    return this.pickupCandidateValue;
   }
 
   update(isInteractionPressed: boolean): void {
@@ -26,17 +26,17 @@ export class CrateInteractionController implements ICrateInteractionController {
     if (!isInteractionPressed) return;
     const hasInteracted = this.player.carriedObject
       ? this.canPutDown && this.player.tryPutDown()
-      : Boolean(this.selectedCrate && this.player.tryPickUp(this.selectedCrate));
+      : Boolean(this.pickupCandidateValue && this.player.tryPickUp(this.pickupCandidateValue));
     if (hasInteracted) this.updateAvailability();
   }
 
   private updateAvailability(): void {
-    const candidate = this.player.carriedObject ? undefined : this.findCandidate();
-    this.selectedCrate = candidate && this.player.canPickUp(candidate) ? candidate : undefined;
+    const pickupCandidate = this.player.carriedObject ? undefined : this.findPickupCandidate();
+    this.pickupCandidateValue = pickupCandidate && this.player.canPickUp(pickupCandidate) ? pickupCandidate : undefined;
     this.canPutDown = this.player.canPutDown();
   }
 
-  private findCandidate(): ICarryable | undefined {
+  private findPickupCandidate(): ICarryable | undefined {
     let closest: ICarryable | undefined;
     let closestDistance = 1.4;
     this.forward.set(Math.sin(this.player.object.rotation.y), 0, Math.cos(this.player.object.rotation.y));

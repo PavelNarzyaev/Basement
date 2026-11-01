@@ -7,6 +7,6 @@ export interface IDustEffect {
   initialize(volume: DustVolumeDto): void;
   setSettings(settings: DustSettingsDto): void;
   setImpactStrength(strength: number): void;
-  update(delta: number): void;
+  update(deltaSeconds: number): void;
   dispose(): void;
 }

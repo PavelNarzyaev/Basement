@@ -66,8 +66,8 @@ export class CeilingDebris implements ICeilingDebris {
     this.object.count = 0;
   }
 
-  update(delta: number): void {
-    const step = Math.min(delta, 0.1);
+  update(deltaSeconds: number): void {
+    const step = Math.min(deltaSeconds, 0.1);
     let hasRemainingParticles = false;
     for (let index = 0; index < this.object.count; index++) {
       const offset = index * 3;

@@ -1,14 +1,14 @@
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
-import type { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import type { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import type { ICrateObjective } from '../contracts/ICrateObjective';
-import { CrateObjectiveProgress } from './CrateObjectiveProgress';
+import { CrateZoneCounter } from './CrateZoneCounter';
 
 export class CrateObjective implements ICrateObjective {
   private readonly panel = document.createElement('section');
   private readonly counter = document.createElement('p');
   private readonly completion = document.createElement('div');
   private readonly restart = document.createElement('button');
-  private progress!: CrateObjectiveProgress;
+  private zoneCounter!: CrateZoneCounter;
   private placedCount = -1;
 
   constructor() {
@@ -24,8 +24,8 @@ export class CrateObjective implements ICrateObjective {
     document.body.append(this.panel);
   }
 
-  start(crates: readonly ICarryable[], zone: OrientedBoxDto, onRestart: () => void): void {
-    this.progress = new CrateObjectiveProgress(crates, zone);
+  start(crates: readonly ICarryable[], zone: YawBoxDto, onRestart: () => void): void {
+    this.zoneCounter = new CrateZoneCounter(crates, zone);
     this.restart.onclick = onRestart;
     this.panel.hidden = false;
     this.placedCount = -1;
@@ -33,11 +33,11 @@ export class CrateObjective implements ICrateObjective {
   }
 
   update(carriedCrate: ICarryable | undefined): void {
-    const count = this.progress.countPlaced(carriedCrate);
+    const count = this.zoneCounter.countPlaced(carriedCrate);
     if (count === this.placedCount) return;
     this.placedCount = count;
-    this.counter.textContent = `Ящики в тележке: ${count}/${this.progress.total}`;
-    this.completion.hidden = count !== this.progress.total;
+    this.counter.textContent = `Ящики в тележке: ${count}/${this.zoneCounter.total}`;
+    this.completion.hidden = count !== this.zoneCounter.total;
   }
 
   dispose(): void {

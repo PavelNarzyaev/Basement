@@ -5,7 +5,7 @@ import { GameplaySession } from '../runtime/GameplaySession';
 import { SceneLoadResultDto } from '../../scenes/contracts/SceneLoadResultDto';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import { CrateSpawnDto } from '../../scenes/contracts/CrateSpawnDto';
-import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import { ControlMode } from '../../input/contracts/ControlMode';
 
 test('session preserves frame order and restarts ready gameplay without a renderer', () => {
@@ -14,7 +14,7 @@ test('session preserves frame order and restarts ready gameplay without a render
   let restart!: () => void;
   const player = {
     object: new Object3D(),
-    update(delta: number) { events.push('player'); deltas.push(delta); },
+    update(deltaSeconds: number) { events.push('player'); deltas.push(deltaSeconds); },
     restart() { events.push('restart'); },
     dispose() { events.push('player disposal'); },
   };
@@ -40,7 +40,7 @@ test('session preserves frame order and restarts ready gameplay without a render
     player, { dispose() { events.push('world disposal'); } }, [crate],
     new SceneLoadResultDto(new Object3D(), new PlayerSpawnDto(new Vector3(), 0),
       [new CrateSpawnDto(new Object3D(), new Vector3(), 0)],
-      new OrientedBoxDto(new Vector3(), new Vector3(1, 1, 1), 0)),
+      new YawBoxDto(new Vector3(), new Vector3(1, 1, 1), 0)),
   ] as unknown as ConstructorParameters<typeof GameplaySession>;
   const session = new GameplaySession(...args);
   events.length = 0;

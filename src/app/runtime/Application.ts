@@ -141,10 +141,10 @@ export class Application {
   };
 
   private readonly animate = (time: number): void => {
-    const delta = this.previousTime === undefined ? 0 : (time - this.previousTime) / 1000;
+    const deltaSeconds = this.previousTime === undefined ? 0 : (time - this.previousTime) / 1000;
     this.previousTime = time;
-    this.session?.update(delta);
-    this.scene.update(delta);
+    this.session?.update(deltaSeconds);
+    this.scene.update(deltaSeconds);
     this.renderer.render(this.scene.scene, this.camera);
     this.joystick.render(this.renderer);
     this.interactionPrompt.render(this.renderer);

@@ -4,18 +4,18 @@ import type { Capsule } from 'three/addons/math/Capsule.js';
 import { Octree } from 'three/addons/math/Octree.js';
 import { CollisionDto } from '../contracts/CollisionDto';
 import type { ICollisionWorld } from '../contracts/ICollisionWorld';
-import type { OrientedBoxDto } from '../contracts/OrientedBoxDto';
+import type { YawBoxDto } from '../contracts/YawBoxDto';
 import { RayHitDto } from '../contracts/RayHitDto';
-import { BoxCollision } from './BoxCollision';
+import { YawBoxCollision } from './YawBoxCollision';
 
 export class CollisionWorld implements ICollisionWorld {
   readonly bounds: Box3;
   private readonly octree: Octree;
-  private readonly boxCollision = new BoxCollision();
+  private readonly boxCollision = new YawBoxCollision();
   private readonly boxBounds = new Box3();
   private readonly triangles: Triangle[] = [];
 
-  constructor(readonly model: Object3D, private readonly boxes: readonly OrientedBoxDto[] = []) {
+  constructor(readonly model: Object3D, private readonly boxes: readonly YawBoxDto[] = []) {
     model.updateWorldMatrix(true, true);
     const collisionGeometry = new Group();
     this.collectCollisionMeshes(model, collisionGeometry);
@@ -35,7 +35,7 @@ export class CollisionWorld implements ICollisionWorld {
     for (const child of object.children) this.collectCollisionMeshes(child, target);
   }
 
-  intersectCapsule(capsule: Capsule, ignoredBox?: OrientedBoxDto): CollisionDto | false {
+  intersectCapsule(capsule: Capsule, ignoredBox?: YawBoxDto): CollisionDto | false {
     const collision = this.octree.capsuleIntersect(capsule);
     if (collision && collision.depth > 0.000001) return new CollisionDto(collision.normal, collision.depth);
     for (const box of this.boxes) {
@@ -46,7 +46,7 @@ export class CollisionWorld implements ICollisionWorld {
     return false;
   }
 
-  hasBoxCollision(box: OrientedBoxDto, ignoredBox = box): boolean {
+  hasBoxCollision(box: YawBoxDto, ignoredBox = box): boolean {
     this.boxCollision.getBounds(box, this.boxBounds);
     this.triangles.length = 0;
     this.octree.getBoxTriangles(this.boxBounds, this.triangles);
@@ -56,7 +56,7 @@ export class CollisionWorld implements ICollisionWorld {
     return this.boxes.some((other) => other !== ignoredBox && this.boxCollision.intersectsBox(box, other));
   }
 
-  castRay(ray: Ray, ignoredBox?: OrientedBoxDto): RayHitDto | undefined {
+  castRay(ray: Ray, ignoredBox?: YawBoxDto): RayHitDto | undefined {
     const collision = this.octree.rayIntersect(ray);
     let closest = collision
       ? new RayHitDto(collision.position, collision.triangle.getNormal(new Vector3()), collision.distance)
@@ -69,12 +69,12 @@ export class CollisionWorld implements ICollisionWorld {
     return closest;
   }
 
-  hasSphereCollision(sphere: Sphere, ignoredBox?: OrientedBoxDto): boolean {
+  hasSphereCollision(sphere: Sphere, ignoredBox?: YawBoxDto): boolean {
     return Boolean(this.octree.sphereIntersect(sphere))
       || this.boxes.some((box) => box !== ignoredBox && this.boxCollision.intersectsSphere(sphere, box));
   }
 
-  findRayDistance(ray: Ray, ignoredBox?: OrientedBoxDto): number | undefined {
+  findRayDistance(ray: Ray, ignoredBox?: YawBoxDto): number | undefined {
     return this.castRay(ray, ignoredBox)?.distance;
   }
 

@@ -1,6 +1,6 @@
 import { AnimationMixer, MathUtils } from 'three';
 import type { AnimationAction, AnimationClip, Object3D } from 'three';
-import type { IObject3DDisposer } from '../../disposer/contracts/IObject3DDisposer';
+import type { IObject3DResourceDisposer } from '../../disposer/contracts/IObject3DResourceDisposer';
 import type { IPlayerVisual } from '../contracts/IPlayerVisual';
 
 export class PlayerVisual implements IPlayerVisual {
@@ -15,7 +15,7 @@ export class PlayerVisual implements IPlayerVisual {
   constructor(
     readonly object: Object3D,
     animations: readonly AnimationClip[],
-    private readonly objectDisposer: IObject3DDisposer,
+    private readonly objectDisposer: IObject3DResourceDisposer,
   ) {
     this.mixer = new AnimationMixer(object);
     this.idle = this.createAction(animations, 'Idle');
@@ -28,8 +28,8 @@ export class PlayerVisual implements IPlayerVisual {
     this.mixer.update(0);
   }
 
-  update(delta: number, speed: number, isCarrying: boolean): void {
-    const isMoving = speed > 0.02;
+  update(deltaSeconds: number, actualHorizontalSpeed: number, isCarrying: boolean): void {
+    const isMoving = actualHorizontalSpeed > 0.02;
     const nextAction = isCarrying
       ? (isMoving ? this.carryMove : this.carryIdle)
       : (isMoving ? this.move : this.idle);
@@ -42,14 +42,14 @@ export class PlayerVisual implements IPlayerVisual {
       }
       this.currentAction = nextAction;
     }
-    this.move.setEffectiveTimeScale(speed / 4);
-    this.carryMove.setEffectiveTimeScale(speed / 2.5);
+    this.move.setEffectiveTimeScale(actualHorizontalSpeed / 4);
+    this.carryMove.setEffectiveTimeScale(actualHorizontalSpeed / 2.5);
     for (const action of this.actions) {
       action.setEffectiveWeight(MathUtils.damp(
-        action.getEffectiveWeight(), action === this.currentAction ? 1 : 0, 20, delta,
+        action.getEffectiveWeight(), action === this.currentAction ? 1 : 0, 20, deltaSeconds,
       ));
     }
-    this.mixer.update(delta);
+    this.mixer.update(deltaSeconds);
   }
 
   dispose(): void {

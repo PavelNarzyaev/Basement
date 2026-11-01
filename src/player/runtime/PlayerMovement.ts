@@ -1,7 +1,7 @@
 import { Vector3 } from 'three';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
-import type { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import type { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 
 export class PlayerMovement {
   static readonly colliderHeight = 1.8;
@@ -29,13 +29,13 @@ export class PlayerMovement {
     return this.collider.start.y < this.minimumHeight;
   }
 
-  integrateVelocity(movementVelocity: Vector3): void {
-    this.velocity.x = movementVelocity.x;
-    this.velocity.z = movementVelocity.z;
+  integrateVelocity(desiredHorizontalVelocity: Vector3): void {
+    this.velocity.x = desiredHorizontalVelocity.x;
+    this.velocity.z = desiredHorizontalVelocity.z;
     this.velocity.y -= 20 * PlayerMovement.fixedStep;
   }
 
-  moveAlongAxis(axis: 'x' | 'y' | 'z', ignoredBox?: OrientedBoxDto): void {
+  moveAlongAxis(axis: 'x' | 'y' | 'z', ignoredBox?: YawBoxDto): void {
     this.previousCollider.copy(this.collider);
     this.displacement.set(0, 0, 0);
     this.displacement[axis] = this.velocity[axis] * PlayerMovement.fixedStep;

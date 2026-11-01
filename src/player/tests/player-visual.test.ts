@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { Object3DDisposer } from '../../disposer/runtime/Object3DDisposer';
+import { Object3DResourceDisposer } from '../../disposer/runtime/Object3DResourceDisposer';
 import { AnimationClip, AnimationMixer, BoxGeometry, Group, Mesh, MeshBasicMaterial, NumberKeyframeTrack, PropertyBinding, SkinnedMesh, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CarryingFixture } from '../../carrying/tests/CarryingFixture';
@@ -111,7 +111,7 @@ async function loadPlayerModel() {
 test('loads the shipped skeleton and plays all four GLB clips without moving the model root', async () => {
   const model = await loadPlayerModel();
   assert.deepEqual(model.animations.map((clip) => clip.name).sort(), ['CarryIdle', 'CarryMove', 'Idle', 'Move']);
-  const visual = new PlayerVisual(model.scene, model.animations, new Object3DDisposer());
+  const visual = new PlayerVisual(model.scene, model.animations, new Object3DResourceDisposer());
   const root = model.scene.getObjectByName('Player');
   assert.ok(root);
   const mesh = model.scene.getObjectByName('PlayerMesh');

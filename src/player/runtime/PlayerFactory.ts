@@ -1,7 +1,7 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import type { ICarryPlacement } from '../../carrying/contracts/ICarryPlacement';
+import type { ICarryPlacementSolver } from '../../carrying/contracts/ICarryPlacementSolver';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
-import type { IObject3DDisposer } from '../../disposer/contracts/IObject3DDisposer';
+import type { IObject3DResourceDisposer } from '../../disposer/contracts/IObject3DResourceDisposer';
 import type { IPlayer } from '../contracts/IPlayer';
 import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
 import { Player } from './Player';
@@ -9,12 +9,12 @@ import { PlayerVisual } from './PlayerVisual';
 
 export class PlayerFactory {
   constructor(
-    private readonly objectDisposer: IObject3DDisposer,
+    private readonly objectDisposer: IObject3DResourceDisposer,
     private readonly baseUrl: string,
   ) {}
 
   async create(
-    world: ICollisionWorld, spawn: PlayerSpawnDto, carryPlacement: ICarryPlacement,
+    world: ICollisionWorld, spawn: PlayerSpawnDto, carryPlacement: ICarryPlacementSolver,
     onProgress: (percentage: number) => void, signal: AbortSignal,
   ): Promise<IPlayer> {
     signal.throwIfAborted();

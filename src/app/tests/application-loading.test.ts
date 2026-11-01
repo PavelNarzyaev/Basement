@@ -4,7 +4,7 @@ import { test, type TestContext } from 'node:test';
 import { Object3D, Scene, Vector3 } from 'three';
 import { SceneLoadResultDto } from '../../scenes/contracts/SceneLoadResultDto';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
-import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import { Application } from '../runtime/Application';
 
 function createFixture(context: TestContext, stage: 'scene' | 'player' | 'audio') {
@@ -41,7 +41,7 @@ function createFixture(context: TestContext, stage: 'scene' | 'player' | 'audio'
     async load(onProgress: (percentage: number) => void) {
       progressCallbacks.push(onProgress);
       if (stage === 'scene') await gate;
-      return new SceneLoadResultDto(new Object3D(), new PlayerSpawnDto(new Vector3(), 0), [], new OrientedBoxDto(new Vector3(), new Vector3(1, 1, 1), 0));
+      return new SceneLoadResultDto(new Object3D(), new PlayerSpawnDto(new Vector3(), 0), [], new YawBoxDto(new Vector3(), new Vector3(1, 1, 1), 0));
     },
     dispose() { recordDisposal('scene'); },
   };

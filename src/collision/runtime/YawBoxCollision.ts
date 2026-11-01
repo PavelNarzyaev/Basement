@@ -2,12 +2,12 @@ import { Box3, Matrix4, Ray, Triangle, Vector3 } from 'three';
 import type { Sphere } from 'three';
 import type { Capsule } from 'three/addons/math/Capsule.js';
 import { OBB } from 'three/addons/math/OBB.js';
-import type { IBoxCollision } from '../contracts/IBoxCollision';
-import type { OrientedBoxDto } from '../contracts/OrientedBoxDto';
+import type { IYawBoxCollision } from '../contracts/IYawBoxCollision';
+import type { YawBoxDto } from '../contracts/YawBoxDto';
 import { CollisionDto } from '../contracts/CollisionDto';
 import { RayHitDto } from '../contracts/RayHitDto';
 
-export class BoxCollision implements IBoxCollision {
+export class YawBoxCollision implements IYawBoxCollision {
   private readonly up = new Vector3(0, 1, 0);
   private readonly localBox = new Box3();
   private readonly localTriangle = new Triangle();
@@ -18,7 +18,7 @@ export class BoxCollision implements IBoxCollision {
   private readonly secondBox = new OBB();
   private readonly rotation = new Matrix4();
 
-  intersectsBox(first: OrientedBoxDto, second: OrientedBoxDto): boolean {
+  intersectsBox(first: YawBoxDto, second: YawBoxDto): boolean {
     this.firstBox.center.copy(first.center);
     this.firstBox.halfSize.copy(first.halfSize).addScalar(-0.00001);
     this.firstBox.rotation.setFromMatrix4(this.rotation.makeRotationY(first.rotationY));
@@ -28,7 +28,7 @@ export class BoxCollision implements IBoxCollision {
     return this.firstBox.intersectsOBB(this.secondBox);
   }
 
-  getBounds(box: OrientedBoxDto, target: Box3): Box3 {
+  getBounds(box: YawBoxDto, target: Box3): Box3 {
     const cosine = Math.abs(Math.cos(box.rotationY));
     const sine = Math.abs(Math.sin(box.rotationY));
     this.point.set(
@@ -41,7 +41,7 @@ export class BoxCollision implements IBoxCollision {
     return target;
   }
 
-  intersectsTriangle(box: OrientedBoxDto, triangle: Triangle): boolean {
+  intersectsTriangle(box: YawBoxDto, triangle: Triangle): boolean {
     this.setLocalBox(box, 0.00001);
     this.toLocal(triangle.a, box, this.localTriangle.a);
     this.toLocal(triangle.b, box, this.localTriangle.b);
@@ -49,7 +49,7 @@ export class BoxCollision implements IBoxCollision {
     return this.localBox.intersectsTriangle(this.localTriangle);
   }
 
-  intersectCapsule(capsule: Capsule, box: OrientedBoxDto): CollisionDto | false {
+  intersectCapsule(capsule: Capsule, box: YawBoxDto): CollisionDto | false {
     // Player capsules are vertical; yaw leaves the segment vertical in box space.
     this.setLocalBox(box);
     this.toLocal(capsule.start, box, this.point);
@@ -77,13 +77,13 @@ export class BoxCollision implements IBoxCollision {
     return new CollisionDto(this.point.clone().applyAxisAngle(this.up, box.rotationY), depth);
   }
 
-  intersectsSphere(sphere: Sphere, box: OrientedBoxDto): boolean {
+  intersectsSphere(sphere: Sphere, box: YawBoxDto): boolean {
     this.setLocalBox(box);
     this.toLocal(sphere.center, box, this.point);
     return this.localBox.distanceToPoint(this.point) < sphere.radius;
   }
 
-  intersectRay(ray: Ray, box: OrientedBoxDto): RayHitDto | undefined {
+  intersectRay(ray: Ray, box: YawBoxDto): RayHitDto | undefined {
     this.setLocalBox(box);
     this.toLocal(ray.origin, box, this.localRay.origin);
     this.localRay.direction.copy(ray.direction).applyAxisAngle(this.up, -box.rotationY);
@@ -100,12 +100,12 @@ export class BoxCollision implements IBoxCollision {
     return new RayHitDto(position, normal.applyAxisAngle(this.up, box.rotationY), position.distanceTo(ray.origin));
   }
 
-  private setLocalBox(box: OrientedBoxDto, inset = 0): void {
+  private setLocalBox(box: YawBoxDto, inset = 0): void {
     this.localBox.min.copy(box.halfSize).negate().addScalar(inset);
     this.localBox.max.copy(box.halfSize).addScalar(-inset);
   }
 
-  private toLocal(point: Vector3, box: OrientedBoxDto, target: Vector3): Vector3 {
+  private toLocal(point: Vector3, box: YawBoxDto, target: Vector3): Vector3 {
     return target.copy(point).sub(box.center).applyAxisAngle(this.up, -box.rotationY);
   }
 }

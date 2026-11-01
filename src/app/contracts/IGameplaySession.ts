@@ -2,7 +2,7 @@ import type { StartupSettingsDto } from '../../startup/contracts/StartupSettings
 
 export interface IGameplaySession {
   start(settings: StartupSettingsDto): void;
-  update(delta: number): void;
+  update(deltaSeconds: number): void;
   restart(): void;
   dispose(): void;
 }

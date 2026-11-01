@@ -8,13 +8,13 @@ test('selects a nearby crate in front, but excludes crates behind or out of reac
   const fixture = new CarryingFixture();
   const controller = new CrateInteractionController(fixture.player, [fixture.crate], fixture.world);
   controller.update(false);
-  assert.equal(controller.candidate, fixture.crate);
+  assert.equal(controller.pickupCandidate, fixture.crate);
   fixture.crate.setPose(new Vector3(0, 0.25, -1), 0);
   controller.update(false);
-  assert.equal(controller.candidate, undefined);
+  assert.equal(controller.pickupCandidate, undefined);
   fixture.crate.setPose(new Vector3(0, 0.25, 3), 0);
   controller.update(false);
-  assert.equal(controller.candidate, undefined);
+  assert.equal(controller.pickupCandidate, undefined);
 });
 
 test('does not select or pick up a crate through a wall', () => {
@@ -23,7 +23,7 @@ test('does not select or pick up a crate through a wall', () => {
   const fixture = new CarryingFixture([wall]);
   const controller = new CrateInteractionController(fixture.player, [fixture.crate], fixture.world);
   controller.update(true);
-  assert.equal(controller.candidate, undefined);
+  assert.equal(controller.pickupCandidate, undefined);
   assert.equal(fixture.player.carriedObject, undefined);
 });
 
@@ -32,7 +32,7 @@ test('picks up and puts down with separate interaction presses', () => {
   const controller = new CrateInteractionController(fixture.player, [fixture.crate], fixture.world);
   controller.update(true);
   assert.equal(fixture.player.carriedObject, fixture.crate);
-  assert.equal(controller.candidate, undefined);
+  assert.equal(controller.pickupCandidate, undefined);
   controller.update(false);
   assert.equal(fixture.player.carriedObject, fixture.crate);
   controller.update(true);
@@ -56,13 +56,13 @@ test('hides pickup when the holding position is blocked and restores it when cle
   const fixture = new CarryingFixture([obstacle]);
   const controller = new CrateInteractionController(fixture.player, [fixture.crate], fixture.world);
   controller.update(false);
-  assert.equal(controller.candidate, undefined);
+  assert.equal(controller.pickupCandidate, undefined);
   controller.update(true);
   assert.equal(fixture.player.carriedObject, undefined);
   assert.deepEqual(fixture.crate.collider.center.toArray(), [0, 0.25, 1.05]);
   fixture.player.object.rotation.y = 0.7;
   controller.update(false);
-  assert.equal(controller.candidate, fixture.crate);
+  assert.equal(controller.pickupCandidate, fixture.crate);
   controller.update(true);
   assert.equal(fixture.player.carriedObject, fixture.crate);
 });

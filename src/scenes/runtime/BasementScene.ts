@@ -7,7 +7,7 @@ import {
 } from 'three';
 import type { Object3D } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import type { IObject3DDisposer } from '../../disposer/contracts/IObject3DDisposer';
+import type { IObject3DResourceDisposer } from '../../disposer/contracts/IObject3DResourceDisposer';
 import type { IDustEffect } from '../../dust/contracts/IDustEffect';
 import { DustVolumeDto } from '../../dust/contracts/DustVolumeDto';
 import { dustBrightness, dustColor, dustFogDensity } from '../../dust/contracts/dustAppearance';
@@ -27,7 +27,7 @@ export class BasementScene implements IGameScene {
   private crateModel: Object3D | undefined;
 
   constructor(
-    private readonly objectDisposer: IObject3DDisposer,
+    private readonly objectDisposer: IObject3DResourceDisposer,
     private readonly dust: IDustEffect,
     private readonly ceilingDebris: ICeilingDebris,
     private readonly baseUrl: string,
@@ -86,9 +86,9 @@ export class BasementScene implements IGameScene {
     return new SceneLoadResultDto(model.scene, layout.playerSpawn, movableCrates, layout.cargoZone);
   }
 
-  update(delta: number): void {
-    this.dust.update(delta);
-    this.ceilingDebris.update(delta);
+  update(deltaSeconds: number): void {
+    this.dust.update(deltaSeconds);
+    this.ceilingDebris.update(deltaSeconds);
   }
 
   dispose(): void {

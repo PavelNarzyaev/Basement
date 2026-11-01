@@ -9,7 +9,7 @@ test('detects, carries and places the separate crate model in the basement', asy
   const controller = new CrateInteractionController(fixture.player, [fixture.crate], fixture.world);
   fixture.player.update(1 / 60, new Vector3());
   controller.update(false);
-  assert.equal(controller.candidate, fixture.crate);
+  assert.equal(controller.pickupCandidate, fixture.crate);
   controller.update(true);
   assert.equal(fixture.player.carriedObject, fixture.crate);
   for (let step = 0; step < 120; step++) {

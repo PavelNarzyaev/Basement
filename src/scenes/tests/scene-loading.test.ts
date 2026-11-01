@@ -5,7 +5,7 @@ import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { SceneLoadResultDto } from '../contracts/SceneLoadResultDto';
 import { SceneLayout } from '../runtime/SceneLayout';
 import { BasementScene } from '../runtime/BasementScene';
-import { Object3DDisposer } from '../../disposer/runtime/Object3DDisposer';
+import { Object3DResourceDisposer } from '../../disposer/runtime/Object3DResourceDisposer';
 
 function createFixture(context: TestContext) {
   const model = new Group();
@@ -33,7 +33,7 @@ function createFixture(context: TestContext) {
     object: new Object3D(), initialize() {}, burst() {}, reset() {}, update() {},
     dispose() { effectDisposals++; },
   };
-  const disposer = new Object3DDisposer();
+  const disposer = new Object3DResourceDisposer();
   const disposal = context.mock.method(disposer, 'dispose');
   const scene = new BasementScene(disposer, dust, debris, '/');
   context.after(() => scene.dispose());

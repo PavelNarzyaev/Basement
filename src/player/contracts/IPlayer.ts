@@ -10,6 +10,6 @@ export interface IPlayer {
   tryPutDown(): boolean;
   restart(): void;
   /** Movement is a direction in world coordinates, with magnitude capped at one. Yaw is an increment in radians about +Y. */
-  update(delta: number, movement: Vector3, yawDeltaRadians?: number): void;
+  update(deltaSeconds: number, worldMovementDirection: Vector3, yawDeltaRadians?: number): void;
   dispose(): void;
 }

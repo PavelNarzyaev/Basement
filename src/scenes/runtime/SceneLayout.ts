@@ -1,13 +1,13 @@
 import { Mesh, Quaternion, Vector3 } from 'three';
 import type { Object3D } from 'three';
-import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import { CratePlacementDto } from '../contracts/CratePlacementDto';
 
 export class SceneLayout {
   readonly playerSpawn: PlayerSpawnDto;
   readonly cratePlacements: readonly CratePlacementDto[];
-  readonly cargoZone: OrientedBoxDto;
+  readonly cargoZone: YawBoxDto;
 
   constructor(model: Object3D) {
     model.updateWorldMatrix(true, true);
@@ -36,7 +36,7 @@ export class SceneLayout {
     const bounds = zone.geometry.boundingBox!;
     const halfSize = bounds.getSize(new Vector3()).multiply(zone.getWorldScale(new Vector3())).multiplyScalar(0.5);
     if (Math.min(halfSize.x, halfSize.y, halfSize.z) <= 0) throw new Error('cargoZone must have positive dimensions and scale.');
-    this.cargoZone = new OrientedBoxDto(
+    this.cargoZone = new YawBoxDto(
       bounds.getCenter(new Vector3()).applyMatrix4(zone.matrixWorld), halfSize, this.getYaw(zone),
     );
   }

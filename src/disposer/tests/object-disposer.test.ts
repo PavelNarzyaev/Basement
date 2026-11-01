@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { BoxGeometry, Group, MeshStandardMaterial, Skeleton, SkinnedMesh, Texture } from 'three';
-import { Object3DDisposer } from '../runtime/Object3DDisposer';
+import { Object3DResourceDisposer } from '../runtime/Object3DResourceDisposer';
 
 test('shared model resources are released once across multiple roots', (context) => {
   class Bitmap {
@@ -31,7 +31,7 @@ test('shared model resources are released once across multiple roots', (context)
     resource.addEventListener('dispose', () => counts.set(name, (counts.get(name) ?? 0) + 1));
   }
   const skeletonDisposal = context.mock.method(skeleton, 'dispose');
-  new Object3DDisposer().dispose(scene, mesh);
+  new Object3DResourceDisposer().dispose(scene, mesh);
   for (const count of counts.values()) assert.equal(count, 1);
   assert.equal(counts.size, 4);
   assert.equal(skeletonDisposal.mock.callCount(), 1);

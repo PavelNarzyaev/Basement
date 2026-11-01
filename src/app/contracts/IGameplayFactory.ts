@@ -5,7 +5,7 @@ import type { ICameraController } from '../../camera/contracts/ICameraController
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
 import type { ICrateInteractionController } from '../../carrying/contracts/ICrateInteractionController';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
-import type { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import type { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import type { ControlMode } from '../../input/contracts/ControlMode';
 import type { IPlayerInput } from '../../input/contracts/IPlayerInput';
 import type { IPlayer } from '../../player/contracts/IPlayer';
@@ -14,7 +14,7 @@ import type { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 export interface IGameplayFactory {
   createSession(player: IPlayer, world: ICollisionWorld, crates: readonly ICarryable[], camera: PerspectiveCamera, sceneResult: SceneLoadResultDto): IGameplaySession;
   createCarryable(model: Object3D): ICarryable;
-  createCollisionWorld(model: Object3D, boxes: readonly OrientedBoxDto[]): ICollisionWorld;
+  createCollisionWorld(model: Object3D, boxes: readonly YawBoxDto[]): ICollisionWorld;
   createPlayer(
     world: ICollisionWorld, spawn: PlayerSpawnDto,
     onProgress: (percentage: number) => void, signal: AbortSignal,

@@ -1,16 +1,16 @@
 import { Box3, Group, Vector3 } from 'three';
 import type { Object3D } from 'three';
-import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import type { ICarryable } from '../contracts/ICarryable';
 
 export class MovableCrate implements ICarryable {
   readonly object = new Group();
-  readonly collider: OrientedBoxDto;
+  readonly collider: YawBoxDto;
 
   constructor(model: Object3D) {
     if (!model.parent) throw new Error('MovableCrate must belong to the scene.');
     const bounds = new Box3().setFromObject(model);
-    this.collider = new OrientedBoxDto(bounds.getCenter(new Vector3()), bounds.getSize(new Vector3()).multiplyScalar(0.5));
+    this.collider = new YawBoxDto(bounds.getCenter(new Vector3()), bounds.getSize(new Vector3()).multiplyScalar(0.5));
     this.object.name = 'MovableCrateCarrier';
     this.object.position.copy(this.collider.center);
     model.parent.add(this.object);

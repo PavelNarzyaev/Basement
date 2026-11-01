@@ -1,8 +1,8 @@
 import type { Object3D, Vector3 } from 'three';
-import type { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
+import type { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 
 export interface ICarryable {
   readonly object: Object3D;
-  readonly collider: OrientedBoxDto;
+  readonly collider: YawBoxDto;
   setPose(center: Vector3, rotationY: number): void;
 }

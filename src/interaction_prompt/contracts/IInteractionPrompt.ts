@@ -5,7 +5,7 @@ import type { ICarryable } from '../../carrying/contracts/ICarryable';
 export interface IInteractionPrompt extends IInteractionButtonView {
   enableTouch(): void;
   resize(width: number, height: number): void;
-  update(candidate: ICarryable | undefined, canPutDown: boolean, camera: PerspectiveCamera): void;
+  update(pickupCandidate: ICarryable | undefined, canPutDown: boolean, camera: PerspectiveCamera): void;
   render(renderer: WebGLRenderer): void;
   dispose(): void;
 }
