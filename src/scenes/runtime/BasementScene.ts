@@ -16,6 +16,7 @@ import type { IScene } from '../contracts/IScene';
 import { CrateSpawnDto } from '../contracts/CrateSpawnDto';
 import type { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
 import { SceneLayout } from './SceneLayout';
+import type { ICeilingDebris } from '../../ceiling_debris/contracts/ICeilingDebris';
 
 export class BasementScene implements IScene {
   private static readonly modelUrl = `${import.meta.env.BASE_URL}models/basement/basement.glb`;
@@ -32,6 +33,7 @@ export class BasementScene implements IScene {
   constructor(
     private readonly objectDisposer: IObject3DDisposer,
     private readonly dust: IDustEffect,
+    private readonly ceilingDebris: ICeilingDebris,
   ) {
     this.scene.background = new Color('#151a24');
     this.scene.fog = new FogExp2(new Color(dustColor).multiplyScalar(dustBrightness), dustFogDensity);
@@ -67,17 +69,21 @@ export class BasementScene implements IScene {
     this.addLampLights(model.scene);
     this.dust.initialize(new DustVolumeDto(new Box3().setFromObject(model.scene)));
     this.scene.add(this.dust.object);
+    this.ceilingDebris.initialize(model.scene);
+    this.scene.add(this.ceilingDebris.object);
     onProgress(100);
     return model.scene;
   }
 
   update(delta: number): void {
     this.dust.update(delta);
+    this.ceilingDebris.update(delta);
   }
 
   dispose(): void {
     this.isDisposed = true;
     this.dust.dispose();
+    this.ceilingDebris.dispose();
     this.objectDisposer.dispose(this.scene);
     this.scene.clear();
   }

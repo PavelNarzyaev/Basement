@@ -13,6 +13,24 @@ function createDust() {
   return dust;
 }
 
+test('impact speeds up dust continuously and restoring calm preserves its positions', () => {
+  const dust = createDust();
+  const uniforms = dust.object.material.uniforms;
+  dust.update(0.05);
+  const calmTime = uniforms.elapsedTime!.value;
+  const calmDrift = uniforms.drift!.value;
+  dust.setImpactStrength(1);
+  assert.equal(uniforms.elapsedTime!.value, calmTime);
+  dust.update(0.05);
+  assert.ok(uniforms.elapsedTime!.value - calmTime > 0.5);
+  assert.ok(uniforms.drift!.value - calmDrift > calmDrift * 10);
+  dust.setImpactStrength(0);
+  const impactTime = uniforms.elapsedTime!.value;
+  dust.update(0.05);
+  assert.ok(Math.abs(uniforms.elapsedTime!.value - impactTime - 0.05) < 1e-6);
+  dust.dispose();
+});
+
 test('particle reserve stays local when the basement gets longer', () => {
   const short = createDust();
   const long = new DustEffect();

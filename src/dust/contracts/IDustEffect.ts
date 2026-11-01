@@ -6,6 +6,7 @@ export interface IDustEffect {
   readonly object: Object3D;
   initialize(volume: DustVolumeDto): void;
   setSettings(settings: DustSettingsDto): void;
+  setImpactStrength(strength: number): void;
   update(delta: number): void;
   dispose(): void;
 }

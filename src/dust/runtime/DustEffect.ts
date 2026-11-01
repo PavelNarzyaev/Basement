@@ -82,6 +82,7 @@ export class DustEffect implements IDustEffect {
   readonly object = new Points(this.geometry, this.material);
   private readonly viewportSize = new Vector2();
   private driftSpeed = this.settings.driftSpeed;
+  private impactStrength = 0;
 
   constructor() {
     this.object.name = 'AirborneDust';
@@ -114,6 +115,10 @@ export class DustEffect implements IDustEffect {
     this.settings = settings;
   }
 
+  setImpactStrength(strength: number): void {
+    this.impactStrength = strength;
+  }
+
   update(delta: number): void {
     // Discard time spent in a background tab so returning does not jump the simulation.
     const step = Math.min(delta, 0.1);
@@ -122,8 +127,9 @@ export class DustEffect implements IDustEffect {
     this.uniforms.opacity.value += (this.settings.opacity - this.uniforms.opacity.value) * blend;
     this.uniforms.turbulence.value += (this.settings.turbulence - this.uniforms.turbulence.value) * blend;
     this.driftSpeed += (this.settings.driftSpeed - this.driftSpeed) * blend;
-    this.uniforms.elapsedTime.value += step;
-    this.uniforms.drift.value += this.driftSpeed * step;
+    const motionStep = step * (1 + this.impactStrength * 14);
+    this.uniforms.elapsedTime.value += motionStep;
+    this.uniforms.drift.value += this.driftSpeed * motionStep;
   }
 
   dispose(): void {

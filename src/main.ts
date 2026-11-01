@@ -1,4 +1,5 @@
 import { Bombardment } from './bombardment/runtime/Bombardment';
+import { CeilingDebris } from './ceiling_debris/runtime/CeilingDebris';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Application } from './app/runtime/Application';
 import type { IGameplayFactory } from './app/contracts/IGameplayFactory';
@@ -31,7 +32,8 @@ if (!canvas) {
 
 const objectDisposer = new Object3DDisposer();
 const dust = new DustEffect();
-const scene = new BasementScene(objectDisposer, dust);
+const ceilingDebris = new CeilingDebris();
+const scene = new BasementScene(objectDisposer, dust, ceilingDebris);
 const overlayFactory = new CanvasOverlayFactory();
 const joystick = new VirtualJoystick(canvas, overlayFactory);
 const interactionPrompt = new InteractionPrompt(canvas, overlayFactory);
@@ -66,7 +68,7 @@ const gameplayFactory: IGameplayFactory = {
     return controlMode === ControlMode.Touch ? new TouchInput(canvas, joystick) : new DesktopInput(canvas);
   },
 };
-const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, new CrateObjective(), new Bombardment());
+const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, new CrateObjective(), new Bombardment(dust, ceilingDebris));
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => application.dispose());

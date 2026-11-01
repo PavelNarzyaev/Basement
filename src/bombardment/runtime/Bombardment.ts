@@ -1,5 +1,7 @@
 import type { PerspectiveCamera } from 'three';
 import type { IBombardment } from '../contracts/IBombardment';
+import type { IDustEffect } from '../../dust/contracts/IDustEffect';
+import type { ICeilingDebris } from '../../ceiling_debris/contracts/ICeilingDebris';
 
 export class Bombardment implements IBombardment {
   private readonly audioContext = new AudioContext();
@@ -7,6 +9,12 @@ export class Bombardment implements IBombardment {
   private readonly sources = new Set<AudioBufferSourceNode>();
   private startTime: number | undefined;
   private nextImpactTime = 0;
+  private lastImpact = 0;
+
+  constructor(
+    private readonly dust: IDustEffect,
+    private readonly ceilingDebris: ICeilingDebris,
+  ) {}
 
   async load(): Promise<void> {
     await Promise.all(['background', 'bomb-whistle', 'bomb-explosion', 'siren'].map(async (name) => {
@@ -21,6 +29,9 @@ export class Bombardment implements IBombardment {
   }
 
   start(): void {
+    this.lastImpact = 0;
+    this.dust.setImpactStrength(0);
+    this.ceilingDebris.reset();
     for (const source of this.sources) source.stop();
     this.sources.clear();
     // Resume inside the start/restart gesture to unlock audio on mobile browsers.
@@ -39,8 +50,15 @@ export class Bombardment implements IBombardment {
       this.scheduleImpact();
     }
     const elapsed = time - this.startTime;
-    if (elapsed < 15) return;
+    const impact = Math.floor(elapsed / 15);
     const impactAge = elapsed % 15;
+    this.dust.setImpactStrength(impact > 0 ? Math.pow(Math.max(0, 1 - impactAge / 5), 2) : 0);
+    if (impact > this.lastImpact) {
+      this.lastImpact = impact;
+      // Do not replay an old burst when returning from a background tab.
+      if (impactAge < 1.4) this.ceilingDebris.burst(camera.position);
+    }
+    if (elapsed < 15) return;
     if (impactAge >= 1.4) return;
     const strength = 0.035 * Math.pow(1 - impactAge / 1.4, 2);
     // Apply after the orbit controller resets the pose, so shake never accumulates.
