@@ -32,6 +32,7 @@ export class Player implements IPlayer {
   private readonly stepStart = new Vector3();
   private traveledDistance = 0;
   private speed = 0;
+  private targetRotationY = 0;
   private accumulator = 0;
 
   constructor(
@@ -49,7 +50,8 @@ export class Player implements IPlayer {
     this.reset();
   }
 
-  update(delta: number, movement: Vector3): void {
+  update(delta: number, movement: Vector3, rotationY = this.object.rotation.y): void {
+    this.targetRotationY += rotationY - this.object.rotation.y;
     this.movement.set(movement.x, 0, movement.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.speed);
     const elapsed = Math.min(delta, 0.1);
     this.accumulator += elapsed;
@@ -145,8 +147,7 @@ export class Player implements IPlayer {
   }
 
   private rotate(): void {
-    if (this.movement.lengthSq() === 0) return;
-    const target = Math.atan2(this.movement.x, this.movement.z);
+    const target = this.targetRotationY;
     const crate = this.carriedObject;
     if (!crate) {
       this.object.rotation.y = target;
@@ -186,6 +187,7 @@ export class Player implements IPlayer {
     this.collider.end.y += Player.colliderHeight - Player.colliderRadius;
     this.velocity.set(0, 0, 0);
     this.object.rotation.y = this.spawnRotationY;
+    this.targetRotationY = this.spawnRotationY;
     this.collider.getCenter(this.object.position);
     this.syncCarriedObject();
   }

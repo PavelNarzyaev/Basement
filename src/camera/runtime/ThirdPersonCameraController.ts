@@ -20,12 +20,12 @@ export class ThirdPersonCameraController implements ICameraController {
     return this.horizontalAngle;
   }
 
-  rotate(horizontal: number, vertical: number): void {
-    this.horizontalAngle -= horizontal;
+  rotate(vertical: number): void {
     this.pitch = MathUtils.clamp(this.pitch + vertical, -0.35, 1.15);
   }
 
-  update(target: Vector3, ignoredBox?: OrientedBoxDto): void {
+  update(target: Vector3, yaw: number, ignoredBox?: OrientedBoxDto): void {
+    this.horizontalAngle = yaw;
     this.target.copy(target);
     this.target.y += 0.35;
     this.direction.set(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));

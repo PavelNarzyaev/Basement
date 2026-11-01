@@ -3,6 +3,6 @@ import type { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
 
 export interface ICameraController {
   readonly yaw: number;
-  rotate(horizontal: number, vertical: number): void;
-  update(target: Vector3, ignoredBox?: OrientedBoxDto): void;
+  rotate(vertical: number): void;
+  update(target: Vector3, yaw: number, ignoredBox?: OrientedBoxDto): void;
 }

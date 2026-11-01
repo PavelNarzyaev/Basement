@@ -10,6 +10,6 @@ export interface IPlayer {
   tryPutDown(): boolean;
   restart(): void;
   /** Movement is a direction in world coordinates, with magnitude capped at one. */
-  update(delta: number, movement: Vector3): void;
+  update(delta: number, movement: Vector3, rotationY?: number): void;
   dispose(): void;
 }

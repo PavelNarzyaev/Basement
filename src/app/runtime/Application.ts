@@ -96,7 +96,7 @@ export class Application {
       // The orbit angle points from the target to the camera, opposite the player's facing direction.
       const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
       this.cameraController = this.gameplayFactory.createCameraController(this.camera, this.collisionWorld, cameraYaw);
-      this.cameraController.update(this.player.object.position);
+      this.cameraController.update(this.player.object.position, cameraYaw);
       this.scene.scene.add(this.player.object);
       this.status.hidden = true;
       this.startupSettingsDialog.open(this.startGameplay);
@@ -147,7 +147,7 @@ export class Application {
     });
     const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
     this.cameraController = this.gameplayFactory.createCameraController(this.camera, this.collisionWorld!, cameraYaw);
-    this.cameraController.update(this.player!.object.position);
+    this.cameraController.update(this.player!.object.position, cameraYaw);
     this.interactionController!.update(false);
     this.objective.update(undefined);
     this.previousTime = undefined;
@@ -170,13 +170,15 @@ export class Application {
     this.previousTime = time;
     if (this.input && this.player && this.cameraController && this.interactionController) {
       const input = this.input.read();
-      this.cameraController.rotate(input.lookX, input.lookY);
+      this.cameraController.rotate(input.lookY);
       this.movement.set(input.movementX, 0, input.movementZ).applyAxisAngle(this.worldUp, this.cameraController.yaw);
-      this.player.update(delta, this.movement);
+      this.player.update(delta, this.movement, this.player.object.rotation.y - input.lookX);
       const isTouchInteractionPressed = this.interactionPrompt.readInteraction();
       this.interactionController.update(input.isInteractionPressed || isTouchInteractionPressed);
       this.objective.update(this.player.carriedObject);
-      this.cameraController.update(this.player.object.position, this.player.carriedObject?.collider);
+      this.cameraController.update(
+        this.player.object.position, this.player.object.rotation.y - Math.PI, this.player.carriedObject?.collider,
+      );
       this.interactionPrompt.update(
         this.interactionController.candidate, this.interactionController.canPutDown, this.camera
       );

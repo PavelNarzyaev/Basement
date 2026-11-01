@@ -44,7 +44,7 @@ test('turning beside a wall keeps the crate outside the wall and attached to the
   const fixture = new CarryingFixture([wall]);
   assert.equal(fixture.player.tryPickUp(fixture.crate), true);
   for (let step = 0; step < 120; step++) {
-    fixture.player.update(1 / 120, new Vector3(1, 0, 0));
+    fixture.player.update(1 / 120, new Vector3(), Math.PI / 2);
     assert.equal(fixture.world.hasBoxCollision(fixture.crate.collider), false);
     const offset = fixture.crate.collider.center.clone().sub(fixture.player.object.position);
     assert.ok(Math.abs(Math.hypot(offset.x, offset.z) - 0.76) < 0.001);
@@ -57,4 +57,27 @@ test('diagonal input does not increase carrying speed', () => {
   fixture.advance(new Vector3(1, 0, 1));
   const position = fixture.player.object.position;
   assert.ok(Math.abs(Math.hypot(position.x, position.z) - 2.5) < 0.001);
+});
+
+for (const direction of [new Vector3(-1, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 0, -1)]) {
+  test('lateral and backward movement preserve facing: ' + direction.toArray(), () => {
+    for (const isCarrying of [false, true]) {
+      const fixture = new CarryingFixture();
+      if (isCarrying) assert.equal(fixture.player.tryPickUp(fixture.crate), true);
+      fixture.advance(direction);
+      assert.equal(fixture.player.object.rotation.y, 0);
+      assert.ok(fixture.player.object.position.dot(direction) > 2);
+    }
+  });
+}
+
+test('carried crate blocks turning in place', () => {
+  const wall = new Mesh(new BoxGeometry(0.1, 3, 5), new MeshBasicMaterial());
+  wall.position.set(0.6, 1.5, 1);
+  const fixture = new CarryingFixture([wall]);
+  assert.equal(fixture.player.tryPickUp(fixture.crate), true);
+  for (let step = 0; step < 120; step++) fixture.player.update(1 / 120, new Vector3(), Math.PI / 2);
+  assert.ok(fixture.player.object.rotation.y > 0);
+  assert.ok(fixture.player.object.rotation.y < Math.PI / 2 - 0.1);
+  assert.equal(fixture.world.hasBoxCollision(fixture.crate.collider), false);
 });

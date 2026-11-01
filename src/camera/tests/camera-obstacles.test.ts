@@ -14,15 +14,15 @@ for (const offset of [0, 0.4]) {
     const camera = new PerspectiveCamera();
     const controller = new ThirdPersonCameraController(camera, world);
     const playerPosition = new Vector3(0, 1, 0);
-    controller.rotate(0, -0.25);
+    controller.rotate(-0.25);
 
-    controller.update(playerPosition);
+    controller.update(playerPosition, 0);
     assert.ok(camera.position.z < 0.76);
 
-    controller.update(playerPosition, crate);
+    controller.update(playerPosition, 0, crate);
     assert.ok(Math.abs(camera.position.z - 3) < 0.001);
 
-    controller.update(playerPosition);
+    controller.update(playerPosition, 0);
     assert.ok(camera.position.z < 0.76);
     world.dispose();
   });
@@ -39,9 +39,9 @@ for (const offset of [0, 0.4]) {
       const world = new CollisionWorld(environment, boxes);
       const camera = new PerspectiveCamera();
       const controller = new ThirdPersonCameraController(camera, world);
-      controller.rotate(0, -0.25);
+      controller.rotate(-0.25);
 
-      controller.update(new Vector3(0, 1, 0), carriedCrate);
+      controller.update(new Vector3(0, 1, 0), 0, carriedCrate);
 
       assert.ok(camera.position.z > 1.5 && camera.position.z < 1.8);
       world.dispose();
