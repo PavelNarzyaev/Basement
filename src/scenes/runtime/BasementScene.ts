@@ -1,4 +1,5 @@
 import {
+  Box3,
   Color,
   PointLight,
   Scene,
@@ -7,6 +8,8 @@ import {
 import type { Object3D } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { IObject3DDisposer } from '../../disposer/contracts/IObject3DDisposer';
+import type { IDustEffect } from '../../dust/contracts/IDustEffect';
+import { DustVolumeDto } from '../../dust/contracts/DustVolumeDto';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import type { IScene } from '../contracts/IScene';
 
@@ -22,7 +25,10 @@ export class BasementScene implements IScene {
   readonly playerSpawn = new PlayerSpawnDto(new Vector3(0, 0.104292 + 0.05, -13), Math.PI);
   private isDisposed = false;
 
-  constructor(private readonly objectDisposer: IObject3DDisposer) {
+  constructor(
+    private readonly objectDisposer: IObject3DDisposer,
+    private readonly dust: IDustEffect,
+  ) {
     this.scene.background = new Color('#151a24');
   }
 
@@ -36,7 +42,12 @@ export class BasementScene implements IScene {
       this.objectDisposer.dispose(model.scene);
       return;
     }
-    this.addLampLights(model.scene);
+    const lampPositions = this.addLampLights(model.scene);
+    this.dust.initialize(new DustVolumeDto(
+      new Box3().setFromObject(model.scene), lampPositions,
+      new Color(BasementScene.lampColor), BasementScene.lampIntensity,
+    ));
+    this.scene.add(this.dust.object);
     this.scene.add(model.scene);
     const crate = model.scene.getObjectByName('MovableCrate');
     if (!crate) throw new Error('Basement model is missing MovableCrate.');
@@ -46,13 +57,18 @@ export class BasementScene implements IScene {
     return model.scene;
   }
 
+  update(delta: number): void {
+    this.dust.update(delta);
+  }
+
   dispose(): void {
     this.isDisposed = true;
+    this.dust.dispose();
     this.objectDisposer.dispose(this.scene);
     this.scene.clear();
   }
 
-  private addLampLights(model: Object3D): void {
+  private addLampLights(model: Object3D): Vector3[] {
     const markers: Object3D[] = [];
     model.traverse((object) => {
       if (typeof object.userData.lightId === 'string') markers.push(object);
@@ -69,5 +85,6 @@ export class BasementScene implements IScene {
       light.castShadow = false;
       marker.add(light);
     }
+    return markers.map((marker) => marker.getWorldPosition(new Vector3()));
   }
 }

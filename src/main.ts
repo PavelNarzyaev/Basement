@@ -15,6 +15,7 @@ import { TouchInput } from './input/runtime/TouchInput';
 import { InteractionPrompt } from './interaction_prompt/runtime/InteractionPrompt';
 import { StartupSettingsDialog } from './startup/runtime/StartupSettingsDialog';
 import { Object3DDisposer } from './disposer/runtime/Object3DDisposer';
+import { DustEffect } from './dust/runtime/DustEffect';
 import { BasementScene } from './scenes/runtime/BasementScene';
 import { Player } from './player/runtime/Player';
 import { PlayerVisual } from './player/runtime/PlayerVisual';
@@ -27,7 +28,8 @@ if (!canvas) {
 }
 
 const objectDisposer = new Object3DDisposer();
-const scene = new BasementScene(objectDisposer);
+const dust = new DustEffect();
+const scene = new BasementScene(objectDisposer, dust);
 const overlayFactory = new CanvasOverlayFactory();
 const joystick = new VirtualJoystick(canvas, overlayFactory);
 const interactionPrompt = new InteractionPrompt(canvas, overlayFactory);

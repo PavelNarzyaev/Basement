@@ -6,5 +6,6 @@ export interface IScene {
   readonly playerSpawn: PlayerSpawnDto;
   readonly movableCrates: readonly Object3D[];
   load(onProgress: (percentage: number) => void): Promise<Object3D | undefined>;
+  update(delta: number): void;
   dispose(): void;
 }

@@ -154,6 +154,7 @@ export class Application {
         this.interactionController.candidate, this.interactionController.canPutDown, this.camera
       );
     }
+    this.scene.update(delta);
     this.renderer.render(this.scene.scene, this.camera);
     this.joystick.render(this.renderer);
     this.interactionPrompt.render(this.renderer);
