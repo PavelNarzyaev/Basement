@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Object3D, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { GameplaySession } from '../runtime/GameplaySession';
+import { SceneLoadResultDto } from '../../scenes/contracts/SceneLoadResultDto';
+import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
+import { CrateSpawnDto } from '../../scenes/contracts/CrateSpawnDto';
+import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
 import { ControlMode } from '../../input/contracts/ControlMode';
 
 test('session preserves frame order and restarts ready gameplay without a renderer', () => {
@@ -18,7 +22,7 @@ test('session preserves frame order and restarts ready gameplay without a render
   const crate = { setPose() { events.push('crate pose'); } };
   const args = [
     { focus() { events.push('focus'); } },
-    { scene: new Scene(), playerSpawn: { rotationY: 0 }, movableCrates: [{ center: new Vector3(), rotationY: 0 }] },
+    new Scene(),
     new PerspectiveCamera(), {},
     { readInteraction() { return true; }, update() { events.push('prompt'); } },
     {
@@ -34,6 +38,9 @@ test('session preserves frame order and restarts ready gameplay without a render
     { start(_crates: unknown, _zone: unknown, callback: () => void) { restart = callback; }, update() { events.push('objective'); } },
     { start() { events.push('bombardment start'); }, update() { events.push('bombardment'); } },
     player, { dispose() { events.push('world disposal'); } }, [crate],
+    new SceneLoadResultDto(new Object3D(), new PlayerSpawnDto(new Vector3(), 0),
+      [new CrateSpawnDto(new Object3D(), new Vector3(), 0)],
+      new OrientedBoxDto(new Vector3(), new Vector3(1, 1, 1), 0)),
   ] as unknown as ConstructorParameters<typeof GameplaySession>;
   const session = new GameplaySession(...args);
   events.length = 0;

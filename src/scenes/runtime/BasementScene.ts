@@ -11,22 +11,18 @@ import type { IObject3DDisposer } from '../../disposer/contracts/IObject3DDispos
 import type { IDustEffect } from '../../dust/contracts/IDustEffect';
 import { DustVolumeDto } from '../../dust/contracts/DustVolumeDto';
 import { dustBrightness, dustColor, dustFogDensity } from '../../dust/contracts/dustAppearance';
-import type { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
-import type { IScene } from '../contracts/IScene';
+import { SceneLoadResultDto } from '../contracts/SceneLoadResultDto';
+import type { IGameScene } from '../contracts/IGameScene';
 import { CrateSpawnDto } from '../contracts/CrateSpawnDto';
-import type { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
 import { SceneLayout } from './SceneLayout';
 import type { ICeilingDebris } from '../../ceiling_debris/contracts/ICeilingDebris';
 
-export class BasementScene implements IScene {
+export class BasementScene implements IGameScene {
   private static readonly lampColor = '#ffdfaa';
   private static readonly lampIntensity = 5;
   private static readonly lampDistance = 150;
 
   readonly scene = new Scene();
-  readonly movableCrates: CrateSpawnDto[] = [];
-  trolleyCargoZone!: OrientedBoxDto;
-  playerSpawn!: PlayerSpawnDto;
   private isDisposed = false;
   private crateModel: Object3D | undefined;
 
@@ -40,8 +36,9 @@ export class BasementScene implements IScene {
     this.scene.fog = new FogExp2(new Color(dustColor).multiplyScalar(dustBrightness), dustFogDensity);
   }
 
-  async load(onProgress: (percentage: number) => void): Promise<Object3D | undefined> {
+  async load(onProgress: (percentage: number) => void): Promise<SceneLoadResultDto> {
     try {
+      if (this.isDisposed) throw new DOMException('Scene loading was cancelled.', 'AbortError');
       return await this.loadModels((percentage) => {
         if (!this.isDisposed) onProgress(percentage);
       });
@@ -51,7 +48,7 @@ export class BasementScene implements IScene {
     }
   }
 
-  private async loadModels(onProgress: (percentage: number) => void): Promise<Object3D | undefined> {
+  private async loadModels(onProgress: (percentage: number) => void): Promise<SceneLoadResultDto> {
     const model = await new GLTFLoader().loadAsync(`${this.baseUrl}models/basement/basement.glb`, (event) => {
       if (event.lengthComputable) {
         onProgress((event.loaded / event.total) * 80);
@@ -59,25 +56,24 @@ export class BasementScene implements IScene {
     });
     if (this.isDisposed) {
       this.objectDisposer.dispose(model.scene);
-      return;
+      throw new DOMException('Scene loading was cancelled.', 'AbortError');
     }
     this.scene.add(model.scene);
     const layout = new SceneLayout(model.scene);
-    this.trolleyCargoZone = layout.cargoZone;
-    this.playerSpawn = layout.playerSpawn;
     const crateModel = await new GLTFLoader().loadAsync(`${this.baseUrl}models/crate/Crate.glb`, (event) => {
       if (event.lengthComputable) onProgress(80 + event.loaded / event.total * 20);
     });
     if (this.isDisposed) {
       this.objectDisposer.dispose(crateModel.scene);
-      return;
+      throw new DOMException('Scene loading was cancelled.', 'AbortError');
     }
     this.crateModel = crateModel.scene;
+    const movableCrates: CrateSpawnDto[] = [];
     for (const [index, placement] of layout.cratePlacements.entries()) {
       const crate = crateModel.scene.clone(true);
       crate.name = `MovableCrate_${index + 1}`;
       this.scene.add(crate);
-      this.movableCrates.push(new CrateSpawnDto(crate, placement.center, placement.rotationY));
+      movableCrates.push(new CrateSpawnDto(crate, placement.center, placement.rotationY));
     }
     this.addLampLights(model.scene);
     const bounds = new Box3().setFromObject(model.scene);
@@ -86,7 +82,8 @@ export class BasementScene implements IScene {
     this.scene.add(this.dust.object);
     this.scene.add(this.ceilingDebris.object);
     onProgress(100);
-    return model.scene;
+    if (this.isDisposed) throw new DOMException('Scene loading was cancelled.', 'AbortError');
+    return new SceneLoadResultDto(model.scene, layout.playerSpawn, movableCrates, layout.cargoZone);
   }
 
   update(delta: number): void {
@@ -101,7 +98,6 @@ export class BasementScene implements IScene {
     this.ceilingDebris.dispose();
     this.objectDisposer.dispose(this.scene, ...(this.crateModel ? [this.crateModel] : []));
     this.crateModel = undefined;
-    this.movableCrates.length = 0;
     this.scene.clear();
   }
 

@@ -4,7 +4,7 @@ import { PerspectiveCamera, WebGLRenderer } from 'three';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IVirtualJoystick } from '../../input/contracts/IVirtualJoystick';
 import type { IPlayer } from '../../player/contracts/IPlayer';
-import type { IScene } from '../../scenes/contracts/IScene';
+import type { IGameScene } from '../../scenes/contracts/IGameScene';
 import type { StartupSettingsDto } from '../../startup/contracts/StartupSettingsDto';
 import type { IStartupSettingsDialog } from '../../startup/contracts/IStartupSettingsDialog';
 import type { IInteractionPrompt } from '../../interaction_prompt/contracts/IInteractionPrompt';
@@ -23,7 +23,7 @@ export class Application {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly scene: IScene,
+    private readonly scene: IGameScene,
     private readonly joystick: IVirtualJoystick,
     private readonly interactionPrompt: IInteractionPrompt,
     private readonly startupSettingsDialog: IStartupSettingsDialog,
@@ -73,27 +73,26 @@ export class Application {
     let world: ICollisionWorld | undefined;
     let player: IPlayer | undefined;
     try {
-      const model = await this.scene.load((percentage) => this.updateLoadingProgress(percentage * 0.9));
+      const sceneResult = await this.scene.load((percentage) => this.updateLoadingProgress(percentage * 0.9));
       if (this.isDisposed) return;
-      if (!model) throw new Error('Scene model was not loaded.');
       this.camera.near = 0.05;
       this.camera.far = 150;
       this.camera.updateProjectionMatrix();
-      const crates = this.scene.movableCrates.map((spawn) => {
+      const crates = sceneResult.movableCrates.map((spawn) => {
         const crate = this.gameplayFactory.createCarryable(spawn.model);
         crate.setPose(spawn.center, spawn.rotationY);
         return crate;
       });
-      world = this.gameplayFactory.createCollisionWorld(model, crates.map((crate) => crate.collider));
+      world = this.gameplayFactory.createCollisionWorld(sceneResult.staticModel, crates.map((crate) => crate.collider));
       player = await this.gameplayFactory.createPlayer(
-        world, this.scene.playerSpawn,
+        world, sceneResult.playerSpawn,
         (percentage) => this.updateLoadingProgress(90 + percentage * 0.1),
         this.loadingController.signal,
       );
       if (this.isDisposed) {
         return;
       }
-      this.session = this.gameplayFactory.createSession(player, world, crates, this.camera);
+      this.session = this.gameplayFactory.createSession(player, world, crates, this.camera, sceneResult);
       player = undefined;
       world = undefined;
       await this.bombardment.load();

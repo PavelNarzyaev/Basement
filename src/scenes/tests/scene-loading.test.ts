@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { test, type TestContext } from 'node:test';
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Object3D } from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import { SceneLoadResultDto } from '../contracts/SceneLoadResultDto';
+import { SceneLayout } from '../runtime/SceneLayout';
 import { BasementScene } from '../runtime/BasementScene';
 import { Object3DDisposer } from '../../disposer/runtime/Object3DDisposer';
 
@@ -60,7 +62,7 @@ for (const asset of ['basement', 'crate']) {
     progress({ lengthComputable: true, loaded: 1, total: 1 } as ProgressEvent);
     const lateModel = asset === 'crate' ? fixture.crate : fixture.model;
     finish({ scene: lateModel } as GLTF);
-    assert.equal(await loading, undefined);
+    await assert.rejects(loading, { name: 'AbortError' });
     assert.equal(progressCount, 0);
     assert.equal(fixture.scene.scene.children.length, 0);
     assert.ok(fixture.disposal.mock.calls.some(call => call.arguments[0] === lateModel));
@@ -105,7 +107,37 @@ for (const shouldFailInitialization of [false, true]) {
     fixture.scene.dispose();
     assert.equal(fixture.geometryDisposals, 1);
     assert.equal(fixture.materialDisposals, 1);
-    assert.equal(fixture.scene.movableCrates.length, 0);
+    assert.equal(fixture.scene.scene.children.length, 0);
     assert.equal(fixture.effectDisposals, 2);
   });
 }
+
+test('successful loading returns all scene data after effects initialize', async (context) => {
+  const fixture = createFixture(context);
+  const layout = new SceneLayout(fixture.model);
+  let areEffectsInitialized = false;
+  context.mock.method(fixture.dust, 'initialize', () => { areEffectsInitialized = true; });
+  context.mock.method(GLTFLoader.prototype, 'loadAsync', async (url: string) => ({
+    scene: url.includes('basement') ? fixture.model : fixture.crate,
+  }) as GLTF);
+  const result = await fixture.scene.load(() => {});
+  assert.ok(result instanceof SceneLoadResultDto);
+  assert.equal(areEffectsInitialized, true);
+  assert.equal(result.staticModel, fixture.model);
+  assert.deepEqual(result.playerSpawn, layout.playerSpawn);
+  assert.deepEqual(result.trolleyCargoZone, layout.cargoZone);
+  assert.equal(result.movableCrates.length, layout.cratePlacements.length);
+  result.movableCrates.forEach((crate, index) => {
+    assert.equal(crate.model.parent, fixture.scene.scene);
+    assert.deepEqual(crate.center, layout.cratePlacements[index]!.center);
+    assert.equal(crate.rotationY, layout.cratePlacements[index]!.rotationY);
+  });
+});
+
+test('loading a disposed scene rejects without requesting assets', async (context) => {
+  const fixture = createFixture(context);
+  const loading = context.mock.method(GLTFLoader.prototype, 'loadAsync');
+  fixture.scene.dispose();
+  await assert.rejects(fixture.scene.load(() => {}), { name: 'AbortError' });
+  assert.equal(loading.mock.callCount(), 0);
+});

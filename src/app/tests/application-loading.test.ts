@@ -2,6 +2,9 @@ import { GameplaySession } from '../runtime/GameplaySession';
 import assert from 'node:assert/strict';
 import { test, type TestContext } from 'node:test';
 import { Object3D, Scene, Vector3 } from 'three';
+import { SceneLoadResultDto } from '../../scenes/contracts/SceneLoadResultDto';
+import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
+import { OrientedBoxDto } from '../../collision/contracts/OrientedBoxDto';
 import { Application } from '../runtime/Application';
 
 function createFixture(context: TestContext, stage: 'scene' | 'player' | 'audio') {
@@ -34,11 +37,11 @@ function createFixture(context: TestContext, stage: 'scene' | 'player' | 'audio'
   const player = { object: new Object3D(), dispose() { recordDisposal('player'); } };
   const world = { dispose() { recordDisposal('world'); } };
   const scene = {
-    scene: new Scene(), movableCrates: [], playerSpawn: { rotationY: 0, position: new Vector3() },
+    scene: new Scene(),
     async load(onProgress: (percentage: number) => void) {
       progressCallbacks.push(onProgress);
       if (stage === 'scene') await gate;
-      return new Object3D();
+      return new SceneLoadResultDto(new Object3D(), new PlayerSpawnDto(new Vector3(), 0), [], new OrientedBoxDto(new Vector3(), new Vector3(1, 1, 1), 0));
     },
     dispose() { recordDisposal('scene'); },
   };
@@ -49,8 +52,8 @@ function createFixture(context: TestContext, stage: 'scene' | 'player' | 'audio'
   const dialog = { ...overlay('dialog'), open() { hasOpenedDialog = true; } };
   let signal!: AbortSignal;
   const factory = {
-    createSession(player: never, world: never, crates: never, camera: never) {
-      return new GameplaySession({} as never, scene as never, camera, {} as never, {} as never, factory as never, {} as never, audio as never, player, world, crates);
+    createSession(player: never, world: never, crates: never, camera: never, sceneResult: SceneLoadResultDto) {
+      return new GameplaySession({} as never, scene.scene, camera, {} as never, {} as never, factory as never, {} as never, audio as never, player, world, crates, sceneResult);
     },
     createCollisionWorld() { return world; },
     async createPlayer(_world: unknown, _spawn: unknown, onProgress: (percentage: number) => void, loadingSignal: AbortSignal) {

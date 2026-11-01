@@ -7,7 +7,8 @@ import type { IPlayerInput } from '../../input/contracts/IPlayerInput';
 import { ControlMode } from '../../input/contracts/ControlMode';
 import type { IVirtualJoystick } from '../../input/contracts/IVirtualJoystick';
 import type { IPlayer } from '../../player/contracts/IPlayer';
-import type { IScene } from '../../scenes/contracts/IScene';
+import type { Scene } from 'three';
+import type { SceneLoadResultDto } from '../../scenes/contracts/SceneLoadResultDto';
 import type { StartupSettingsDto } from '../../startup/contracts/StartupSettingsDto';
 import type { IInteractionPrompt } from '../../interaction_prompt/contracts/IInteractionPrompt';
 import type { IGameplayFactory } from '../contracts/IGameplayFactory';
@@ -28,7 +29,7 @@ export class GameplaySession implements IGameplaySession {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly scene: IScene,
+    private readonly scene: Scene,
     private readonly camera: PerspectiveCamera,
     private readonly joystick: IVirtualJoystick,
     private readonly interactionPrompt: IInteractionPrompt,
@@ -38,13 +39,14 @@ export class GameplaySession implements IGameplaySession {
     private readonly player: IPlayer,
     private readonly collisionWorld: ICollisionWorld,
     private readonly crates: readonly ICarryable[],
+    private readonly sceneResult: SceneLoadResultDto,
   ) {
     this.interactionController = this.gameplayFactory.createInteractionController(this.player, this.crates, this.collisionWorld);
     // The orbit angle points from the target to the camera, opposite the player's facing direction.
-    const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
+    const cameraYaw = this.sceneResult.playerSpawn.rotationY - Math.PI;
     this.cameraController = this.gameplayFactory.createCameraController(this.camera, this.collisionWorld, cameraYaw);
     this.cameraController.update(this.player.object.position, cameraYaw);
-    this.scene.scene.add(this.player.object);
+    this.scene.add(this.player.object);
   }
 
   start(settings: StartupSettingsDto): void {
@@ -55,17 +57,17 @@ export class GameplaySession implements IGameplaySession {
     this.bombardment.start();
     this.shouldResetDelta = true;
     this.input = this.gameplayFactory.createInput(settings.controlMode);
-    this.objective.start(this.crates, this.scene.trolleyCargoZone, this.restart);
+    this.objective.start(this.crates, this.sceneResult.trolleyCargoZone, this.restart);
   }
 
   readonly restart = (): void => {
     this.bombardment.start();
     this.player.restart();
     this.crates.forEach((crate, index) => {
-      const spawn = this.scene.movableCrates[index]!;
+      const spawn = this.sceneResult.movableCrates[index]!;
       crate.setPose(spawn.center, spawn.rotationY);
     });
-    const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
+    const cameraYaw = this.sceneResult.playerSpawn.rotationY - Math.PI;
     this.cameraController = this.gameplayFactory.createCameraController(this.camera, this.collisionWorld, cameraYaw);
     this.cameraController.update(this.player.object.position, cameraYaw);
     this.interactionController.update(false);

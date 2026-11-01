@@ -39,8 +39,8 @@ const joystick = new VirtualJoystick(canvas, overlayFactory);
 const interactionPrompt = new InteractionPrompt(canvas, overlayFactory);
 const startupSettingsDialog = new StartupSettingsDialog(canvas, overlayFactory);
 const gameplayFactory: IGameplayFactory = {
-  createSession(player, world, crates, camera) {
-    return new GameplaySession(canvas, scene, camera, joystick, interactionPrompt, gameplayFactory, objective, bombardment, player, world, crates);
+  createSession(player, world, crates, camera, sceneResult) {
+    return new GameplaySession(canvas, scene.scene, camera, joystick, interactionPrompt, gameplayFactory, objective, bombardment, player, world, crates, sceneResult);
   },
   createCarryable(model) {
     return new MovableCrate(model);
