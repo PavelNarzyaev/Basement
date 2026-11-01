@@ -1,16 +1,13 @@
 import { Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
+import type { IBombardmentAudio } from '../contracts/IBombardmentAudio';
+import type { IBombardmentClock } from '../contracts/IBombardmentClock';
 import type { IBombardment } from '../contracts/IBombardment';
 import type { IDustEffect } from '../../dust/contracts/IDustEffect';
 import type { ICeilingDebris } from '../../ceiling_debris/contracts/ICeilingDebris';
 
 export class Bombardment implements IBombardment {
-  private readonly audioContext = new AudioContext();
-  private readonly buffers = new Map<string, AudioBuffer>();
-  private readonly sources = new Set<AudioBufferSourceNode>();
-  private readonly impactSources = new Set<AudioBufferSourceNode>();
   private readonly visibilityController = new AbortController();
-  private readonly loadingController = new AbortController();
   private isDisposed = false;
   private startTime: number | undefined;
   private nextImpactTime = 0;
@@ -20,7 +17,8 @@ export class Bombardment implements IBombardment {
   constructor(
     private readonly dust: IDustEffect,
     private readonly ceilingDebris: ICeilingDebris,
-    private readonly baseUrl: string,
+    private readonly audio: IBombardmentAudio,
+    private readonly clock: IBombardmentClock,
   ) {
     document.addEventListener('visibilitychange', this.handleVisibilityChange, {
       signal: this.visibilityController.signal,
@@ -28,25 +26,9 @@ export class Bombardment implements IBombardment {
   }
 
   async load(): Promise<void> {
-    const signal = this.loadingController.signal;
-    signal.throwIfAborted();
-    const buffers = new Map<string, AudioBuffer>();
     try {
-      await Promise.all(['background', 'bomb-whistle', 'bomb-explosion', 'siren'].map(async (name) => {
-        const response = await fetch(`${this.baseUrl}sounds/${name}.mp3`, { signal });
-        if (!response.ok) throw new Error(`Could not load sound ${name}: ${response.status}`);
-        const data = await response.arrayBuffer();
-        signal.throwIfAborted();
-        const buffer = await this.audioContext.decodeAudioData(data);
-        signal.throwIfAborted();
-        buffers.set(name, buffer);
-      }));
-      if (buffers.get('bomb-whistle')!.duration > 15) {
-        throw new Error('Bomb whistle must fit within the 15-second bombardment interval.');
-      }
-      for (const [name, buffer] of buffers) this.buffers.set(name, buffer);
+      await this.audio.load();
     } catch (error) {
-      buffers.clear();
       this.dispose();
       throw error;
     }
@@ -56,22 +38,16 @@ export class Bombardment implements IBombardment {
     this.lastImpact = 0;
     this.dust.setImpactStrength(0);
     this.ceilingDebris.reset();
-    for (const source of this.sources) source.stop();
-    this.sources.clear();
-    this.impactSources.clear();
-    // Resume inside the start/restart gesture to unlock audio on mobile browsers.
-    void this.audioContext.resume().catch((error: unknown) => console.error('Could not start audio:', error));
-    this.startTime = this.audioContext.currentTime;
+    this.startTime = this.clock.currentTime;
+    this.audio.start(this.startTime);
     this.nextImpactTime = this.startTime + 15;
-    this.play('background', this.startTime, true);
-    this.play('siren', this.startTime + 50, true);
     if (!document.hidden) this.scheduleImpact();
   }
 
   update(camera: PerspectiveCamera, playerPosition: Vector3): void {
     if (this.startTime === undefined || document.hidden) return;
-    const time = this.audioContext.currentTime;
-    const whistleDuration = this.buffers.get('bomb-whistle')!.duration;
+    const time = this.clock.currentTime;
+    const whistleDuration = this.audio.whistleDuration;
     const nextWhistleTime = this.nextImpactTime - whistleDuration;
     // Skip whole impacts whose whistle can no longer start on time.
     if (nextWhistleTime < time) {
@@ -102,54 +78,25 @@ export class Bombardment implements IBombardment {
   dispose(): void {
     if (this.isDisposed) return;
     this.isDisposed = true;
-    this.loadingController.abort();
     this.visibilityController.abort();
-    for (const source of this.sources) source.stop();
-    this.sources.clear();
-    this.impactSources.clear();
-    this.buffers.clear();
+    this.audio.dispose();
     this.startTime = undefined;
-    void this.audioContext.close();
   }
 
   private readonly handleVisibilityChange = (): void => {
     if (this.startTime === undefined) return;
-    for (const source of this.impactSources) {
-      source.stop();
-      this.sources.delete(source);
-    }
-    this.impactSources.clear();
+    this.audio.stopImpacts();
     this.dust.setImpactStrength(0);
     this.ceilingDebris.reset();
     if (document.hidden) return;
-    this.startTime = this.audioContext.currentTime;
+    this.startTime = this.clock.currentTime;
     this.nextImpactTime = this.startTime + 15;
     this.lastImpact = 0;
     this.scheduleImpact();
   };
 
   private scheduleImpact(): void {
-    this.impactSources.add(this.play('bomb-whistle', this.nextImpactTime - this.buffers.get('bomb-whistle')!.duration));
-    this.impactSources.add(this.play('bomb-explosion', this.nextImpactTime + 0.2));
+    this.audio.scheduleImpact(this.nextImpactTime);
     this.nextImpactTime += 15;
-  }
-
-  private play(name: string, time: number, isLooping = false): AudioBufferSourceNode {
-    const source = this.audioContext.createBufferSource();
-    source.buffer = this.buffers.get(name)!;
-    source.loop = isLooping;
-    const gain = this.audioContext.createGain();
-    gain.gain.value = name === 'siren' ? 0.3 : 1;
-    source.connect(gain);
-    gain.connect(this.audioContext.destination);
-    source.onended = () => {
-      this.sources.delete(source);
-      this.impactSources.delete(source);
-      source.disconnect();
-      gain.disconnect();
-    };
-    this.sources.add(source);
-    source.start(time);
-    return source;
   }
 }

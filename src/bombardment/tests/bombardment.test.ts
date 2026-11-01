@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test, type TestContext } from 'node:test';
 import { Object3D, PerspectiveCamera, Vector3 } from 'three';
+import { BombardmentAudio } from '../runtime/BombardmentAudio';
 import { Bombardment } from '../runtime/Bombardment';
 
 class AudioSource {
@@ -49,6 +50,7 @@ function createFixture(context: TestContext) {
   const strengths: number[] = [];
   let burstCount = 0;
   let resetCount = 0;
+  const audio = new BombardmentAudio('/');
   const bombardment = new Bombardment(
     {
       object: new Object3D(), initialize() {}, setSettings() {}, update() {}, dispose() {},
@@ -58,16 +60,17 @@ function createFixture(context: TestContext) {
       object: new Object3D(), initialize() {}, update() {}, dispose() {},
       burst() { burstCount++; }, reset() { resetCount++; },
     },
-    '/',
+    audio,
+    audio,
   );
   // Supply decoded assets without involving network or browser audio decoding.
-  const buffers = (bombardment as unknown as { buffers: Map<string, AudioBuffer> }).buffers;
+  const buffers = (audio as unknown as { buffers: Map<string, AudioBuffer> }).buffers;
   for (const name of ['background', 'siren', 'bomb-whistle', 'bomb-explosion']) {
     buffers.set(name, { duration: name === 'bomb-whistle' ? 2 : 1 } as AudioBuffer);
   }
   context.after(() => bombardment.dispose());
   return {
-    clock, page, bombardment, strengths, buffers,
+    clock, page, bombardment, audio, strengths, buffers,
     get burstCount() { return burstCount; },
     get resetCount() { return resetCount; },
     update(time: number) {
@@ -207,7 +210,7 @@ for (const stage of ['fetch', 'body', 'decode'] as const) {
       if (stage === 'decode') await gate;
       return { duration: 2 } as AudioBuffer;
     });
-    const loading = fixture.bombardment.load();
+    const loading = fixture.audio.load();
     const rejection = assert.rejects(loading, { name: 'AbortError' });
     await new Promise(resolve => setImmediate(resolve));
     fixture.bombardment.dispose();
@@ -243,7 +246,7 @@ for (const name of ['background', 'bomb-whistle', 'bomb-explosion', 'siren']) {
         if (new Uint8Array(data)[0] === 1 && stage === 'decode') throw failure;
         return { duration: 2 } as AudioBuffer;
       });
-      await assert.rejects(fixture.bombardment.load(), failure);
+      await assert.rejects(fixture.audio.load(), failure);
       await new Promise(resolve => setImmediate(resolve));
       assert.equal(fixture.buffers.size, 0);
       assert.ok(signals.every(signal => signal.aborted));
@@ -258,7 +261,21 @@ test('invalid whistle duration releases decoded audio assets', async (context) =
   fixture.buffers.clear();
   context.mock.method(globalThis, 'fetch', async () => new Response(new ArrayBuffer(0)));
   context.mock.method(fixture.clock, 'decodeAudioData', async () => ({ duration: 16 }) as AudioBuffer);
-  await assert.rejects(fixture.bombardment.load(), /whistle must fit/);
+  await assert.rejects(fixture.audio.load(), /whistle must fit/);
   assert.equal(fixture.buffers.size, 0);
   assert.equal(fixture.clock.closeCount, 1);
+});
+
+test('audio restart and impact cancellation work independently of visual effects', (context) => {
+  const fixture = createFixture(context);
+  fixture.audio.start(4);
+  fixture.audio.scheduleImpact(19);
+  const sources = [...fixture.clock.sources];
+  fixture.audio.stopImpacts();
+  assert.deepEqual(sources.map(source => source.isStopped), [false, false, true, true]);
+  fixture.audio.start(8);
+  assert.ok(sources.every(source => source.isStopped));
+  assert.deepEqual(fixture.clock.sources.slice(-2).map(source => source.startTime), [8, 58]);
+  fixture.audio.dispose();
+  assert.ok(fixture.clock.sources.every(source => source.isStopped));
 });

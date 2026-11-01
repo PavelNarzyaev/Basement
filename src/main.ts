@@ -1,4 +1,5 @@
 import { GameplaySession } from './app/runtime/GameplaySession';
+import { BombardmentAudio } from './bombardment/runtime/BombardmentAudio';
 import { Bombardment } from './bombardment/runtime/Bombardment';
 import { CeilingDebris } from './ceiling_debris/runtime/CeilingDebris';
 import { Application } from './app/runtime/Application';
@@ -63,7 +64,8 @@ const gameplayFactory: IGameplayFactory = {
   },
 };
 const objective = new CrateObjective();
-const bombardment = new Bombardment(dust, ceilingDebris, import.meta.env.BASE_URL);
+const bombardmentAudio = new BombardmentAudio(import.meta.env.BASE_URL);
+const bombardment = new Bombardment(dust, ceilingDebris, bombardmentAudio, bombardmentAudio);
 const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, objective, bombardment);
 
 if (import.meta.hot) {
