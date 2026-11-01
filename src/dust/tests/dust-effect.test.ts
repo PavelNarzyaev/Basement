@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { Box3, Color, Scene, Vector3 } from 'three';
+import { Box3, Scene, Vector3 } from 'three';
 import { DustSettingsDto } from '../contracts/DustSettingsDto';
 import { DustVolumeDto } from '../contracts/DustVolumeDto';
 import { DustEffect } from '../runtime/DustEffect';
@@ -9,7 +9,6 @@ function createDust() {
   const dust = new DustEffect();
   dust.initialize(new DustVolumeDto(
     new Box3(new Vector3(-5, 0, -20), new Vector3(5, 6, 20)),
-    [new Vector3(4, 5, 0)], new Color('#ffdfaa'), 5,
   ));
   return dust;
 }

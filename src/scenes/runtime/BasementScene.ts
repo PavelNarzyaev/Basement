@@ -42,11 +42,8 @@ export class BasementScene implements IScene {
       this.objectDisposer.dispose(model.scene);
       return;
     }
-    const lampPositions = this.addLampLights(model.scene);
-    this.dust.initialize(new DustVolumeDto(
-      new Box3().setFromObject(model.scene), lampPositions,
-      new Color(BasementScene.lampColor), BasementScene.lampIntensity,
-    ));
+    this.addLampLights(model.scene);
+    this.dust.initialize(new DustVolumeDto(new Box3().setFromObject(model.scene)));
     this.scene.add(this.dust.object);
     this.scene.add(model.scene);
     const crate = model.scene.getObjectByName('MovableCrate');
@@ -68,7 +65,7 @@ export class BasementScene implements IScene {
     this.scene.clear();
   }
 
-  private addLampLights(model: Object3D): Vector3[] {
+  private addLampLights(model: Object3D): void {
     const markers: Object3D[] = [];
     model.traverse((object) => {
       if (typeof object.userData.lightId === 'string') markers.push(object);
@@ -85,6 +82,5 @@ export class BasementScene implements IScene {
       light.castShadow = false;
       marker.add(light);
     }
-    return markers.map((marker) => marker.getWorldPosition(new Vector3()));
   }
 }

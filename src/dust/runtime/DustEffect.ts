@@ -15,9 +15,7 @@ export class DustEffect implements IDustEffect {
     viewportHeight: { value: 1 },
     volumeMin: { value: new Vector3() },
     volumeSize: { value: new Vector3() },
-    lampPositions: { value: [] as Vector3[] },
-    lampColor: { value: new Color() },
-    lampIntensity: { value: 0 },
+    dustColor: { value: new Color('#ffdfaa').multiplyScalar(0.5) },
   };
   private readonly material = new ShaderMaterial({
     uniforms: this.uniforms,
@@ -31,13 +29,7 @@ export class DustEffect implements IDustEffect {
       uniform float viewportHeight;
       uniform vec3 volumeMin;
       uniform vec3 volumeSize;
-      #if LAMP_COUNT > 0
-        uniform vec3 lampPositions[LAMP_COUNT];
-      #endif
-      uniform vec3 lampColor;
-      uniform float lampIntensity;
       attribute vec3 variation;
-      varying vec3 dustColor;
       varying float visibility;
 
       void main() {
@@ -59,19 +51,11 @@ export class DustEffect implements IDustEffect {
         float edgeFade = smoothstep(0.0, 0.35, min(edge.x, min(edge.y, edge.z)));
         float nearFade = smoothstep(0.2, 0.8, -viewPosition.z);
         visibility = edgeFade * nearFade * smoothstep(variation.z, variation.z + 0.04, density);
-        float illumination = 0.035;
-        #if LAMP_COUNT > 0
-          for (int i = 0; i < LAMP_COUNT; i++) {
-            vec3 lightOffset = lampPositions[i] - worldPosition;
-            illumination += lampIntensity / max(dot(lightOffset, lightOffset), 0.5);
-          }
-        #endif
-        dustColor = lampColor * min(illumination, 1.5);
       }
     `,
     fragmentShader: /* glsl */ `
       uniform float opacity;
-      varying vec3 dustColor;
+      uniform vec3 dustColor;
       varying float visibility;
 
       void main() {
@@ -101,11 +85,6 @@ export class DustEffect implements IDustEffect {
   initialize(volume: DustVolumeDto): void {
     const size = volume.bounds.getSize(this.uniforms.volumeSize.value);
     this.uniforms.volumeMin.value.copy(volume.bounds.min);
-    this.uniforms.lampPositions.value = volume.lampPositions.map((position) => position.clone());
-    this.uniforms.lampColor.value.copy(volume.lampColor);
-    this.uniforms.lampIntensity.value = volume.lampIntensity;
-    this.material.defines.LAMP_COUNT = volume.lampPositions.length;
-    this.material.needsUpdate = true;
 
     // Reserve room for denser bombardment dust without reallocating GPU buffers.
     const count = Math.min(24000, Math.ceil(size.x * size.y * size.z * 6));
