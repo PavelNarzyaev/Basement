@@ -115,6 +115,12 @@ export class Application {
   }
 
   private readonly startGameplay = (settings: StartupSettingsDto): void => {
+    if (settings.shouldEnterFullscreen && !document.fullscreenElement) {
+      // Request within the start gesture to preserve browser user activation.
+      void document.documentElement.requestFullscreen().catch((error: unknown) => {
+        console.error('Could not enter fullscreen:', error);
+      });
+    }
     if (settings.controlMode === ControlMode.Touch) {
       this.joystick.show();
       this.interactionPrompt.enableTouch();

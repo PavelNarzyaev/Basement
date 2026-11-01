@@ -17,11 +17,15 @@ export class StartupSettingsDialog implements IStartupSettingsDialog {
   private readonly selectedBackground: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly desktopLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly mobileLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly fullscreenBackground: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly fullscreenCheck: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private readonly fullscreenLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly startBackground: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly startLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly events = new AbortController();
   private controlMode = ControlMode.Desktop;
-  private pressedAction: ControlMode | 'start' | undefined;
+  private shouldEnterFullscreen = false;
+  private pressedAction: ControlMode | 'fullscreen' | 'start' | undefined;
   private pressedPointer: number | undefined;
 
   constructor(private readonly canvas: HTMLCanvasElement, overlayFactory: ICanvasOverlayFactory) {
@@ -33,6 +37,9 @@ export class StartupSettingsDialog implements IStartupSettingsDialog {
     this.selectedBackground = this.overlay.createPanel('#596c89');
     this.desktopLabel = this.overlay.createLabel('Десктоп', 18);
     this.mobileLabel = this.overlay.createLabel('Мобильный', 18);
+    this.fullscreenBackground = this.overlay.createPanel('#596c89');
+    this.fullscreenCheck = this.overlay.createLabel('✓', 22);
+    this.fullscreenLabel = this.overlay.createLabel('Развернуть', 18);
     this.startBackground = this.overlay.createPanel('#435b48');
     this.startLabel = this.overlay.createLabel('Запустить', 21);
     this.panel.position.z = -1;
@@ -43,6 +50,7 @@ export class StartupSettingsDialog implements IStartupSettingsDialog {
     this.content.add(
       this.panel, this.heading, this.controlLabel, this.toggleBackground, this.selectedBackground,
       this.desktopLabel, this.mobileLabel, this.startBackground, this.startLabel,
+      this.fullscreenBackground, this.fullscreenCheck, this.fullscreenLabel,
     );
     this.overlay.scene.add(this.content);
     const options = { signal: this.events.signal };
@@ -66,21 +74,27 @@ export class StartupSettingsDialog implements IStartupSettingsDialog {
     const contentWidth = panelWidth - 40;
     const segmentWidth = contentWidth / 2;
     this.content.position.set(width / 2, height / 2, 0);
-    this.panel.scale.set(panelWidth, 290, 1);
-    this.heading.position.y = -98;
-    this.controlLabel.position.y = -44;
-    this.toggleBackground.position.y = 3;
+    this.panel.scale.set(panelWidth, 340, 1);
+    this.heading.position.y = -125;
+    this.controlLabel.position.y = -75;
+    this.toggleBackground.position.y = -28;
     this.toggleBackground.scale.set(contentWidth, 52, 1);
     this.selectedBackground.scale.set(segmentWidth - 4, 44, 1);
-    this.desktopLabel.position.set(-segmentWidth / 2, 3, 0.2);
-    this.mobileLabel.position.set(segmentWidth / 2, 3, 0.2);
-    this.startBackground.position.y = 94;
+    this.desktopLabel.position.set(-segmentWidth / 2, -28, 0.2);
+    this.mobileLabel.position.set(segmentWidth / 2, -28, 0.2);
+    this.startBackground.position.y = 114;
     this.startBackground.scale.set(contentWidth, 54, 1);
-    this.startLabel.position.y = 94;
+    this.startLabel.position.y = 114;
     const labelScale = Math.min(1, contentWidth / 320);
     for (const label of [this.heading, this.controlLabel, this.desktopLabel, this.mobileLabel, this.startLabel]) {
       label.scale.set(512 * labelScale, 64 * labelScale, 1);
     }
+    this.fullscreenBackground.position.set(-76 * labelScale, 40, 0);
+    this.fullscreenBackground.scale.set(24, 24, 1);
+    this.fullscreenCheck.position.set(-76 * labelScale, 40, 0.1);
+    this.fullscreenCheck.scale.set(512, 64, 1);
+    this.fullscreenLabel.position.set(15 * labelScale, 40, 0);
+    this.fullscreenLabel.scale.set(512 * labelScale, 64 * labelScale, 1);
     this.updateSelection();
     this.clearPress();
   }
@@ -95,17 +109,21 @@ export class StartupSettingsDialog implements IStartupSettingsDialog {
   }
 
   private updateSelection(): void {
+    this.fullscreenCheck.visible = this.shouldEnterFullscreen;
     const label = this.controlMode === ControlMode.Desktop ? this.desktopLabel : this.mobileLabel;
     this.selectedBackground.position.set(label.position.x, label.position.y, 0.1);
   }
 
-  private getAction(clientX: number, clientY: number): ControlMode | 'start' | undefined {
+  private getAction(clientX: number, clientY: number): ControlMode | 'fullscreen' | 'start' | undefined {
     if (!this.overlay.scene.visible) return undefined;
     const bounds = this.canvas.getBoundingClientRect();
     const x = clientX - bounds.left - this.content.position.x;
     const y = clientY - bounds.top - this.content.position.y;
     if (Math.abs(x) <= this.toggleBackground.scale.x / 2 && Math.abs(y - this.toggleBackground.position.y) <= 26) {
       return x < 0 ? ControlMode.Desktop : ControlMode.Touch;
+    }
+    if (Math.abs(x) <= this.toggleBackground.scale.x / 2 && Math.abs(y - this.fullscreenBackground.position.y) <= 20) {
+      return 'fullscreen';
     }
     if (Math.abs(x) <= this.startBackground.scale.x / 2 && Math.abs(y - this.startBackground.position.y) <= 27) {
       return 'start';
@@ -129,7 +147,10 @@ export class StartupSettingsDialog implements IStartupSettingsDialog {
     this.clearPress();
     if (action === 'start') {
       this.overlay.scene.visible = false;
-      this.onStart(new StartupSettingsDto(this.controlMode));
+      this.onStart(new StartupSettingsDto(this.controlMode, this.shouldEnterFullscreen));
+    } else if (action === 'fullscreen') {
+      this.shouldEnterFullscreen = !this.shouldEnterFullscreen;
+      this.updateSelection();
     } else {
       this.controlMode = action;
       this.updateSelection();
