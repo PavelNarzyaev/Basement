@@ -1,5 +1,6 @@
-import { DynamicDrawUsage, InstancedMesh, MeshStandardMaterial, Object3D, TetrahedronGeometry, Vector3 } from 'three';
+import { Box3, DynamicDrawUsage, InstancedMesh, MeshStandardMaterial, Object3D, TetrahedronGeometry, Vector3 } from 'three';
 import type { ICeilingDebris } from '../contracts/ICeilingDebris';
+import { debrisMaximumDistance, debrisMinimumDistance, debrisSectorHalfAngleDegrees } from '../contracts/debrisSpawnSettings';
 
 export class CeilingDebris implements ICeilingDebris {
   private static readonly particleCount = 120;
@@ -12,6 +13,7 @@ export class CeilingDebris implements ICeilingDebris {
   private readonly sizes = new Float32Array(CeilingDebris.particleCount);
   private readonly transform = new Object3D();
   private readonly origin = new Vector3();
+  private readonly spawnBounds = new Box3();
   private floorHeight = 0;
   private ceilingHeight = 0;
 
@@ -23,17 +25,22 @@ export class CeilingDebris implements ICeilingDebris {
     this.reset();
   }
 
-  initialize(floorHeight: number, ceilingHeight: number): void {
-    this.floorHeight = floorHeight - 0.1;
-    this.ceilingHeight = ceilingHeight + 0.1;
+  initialize(bounds: Box3): void {
+    this.floorHeight = bounds.min.y - 0.1;
+    this.ceilingHeight = bounds.max.y + 0.1;
+    this.spawnBounds.copy(bounds);
+    // Leave room for the sideways drift before particles reach the floor.
+    this.spawnBounds.min.x += 1;
+    this.spawnBounds.min.z += 1;
+    this.spawnBounds.max.x -= 1;
+    this.spawnBounds.max.z -= 1;
   }
 
-  burst(position: Vector3): void {
+  burst(position: Vector3, direction: Vector3): void {
     this.object.count = 0;
+    const heading = Math.atan2(direction.x, direction.z);
     for (let patch = 0; patch < 6; patch++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 1 + Math.random() * 3;
-      this.origin.set(position.x + Math.cos(angle) * radius, this.ceilingHeight, position.z + Math.sin(angle) * radius);
+      if (!this.selectOrigin(position, heading)) continue;
       for (let particle = 0; particle < 20; particle++) {
         const index = this.object.count++;
         const offset = index * 3;
@@ -44,6 +51,15 @@ export class CeilingDebris implements ICeilingDebris {
       }
     }
     this.update(0);
+  }
+
+  private selectOrigin(position: Vector3, heading: number): boolean {
+    const halfAngle = debrisSectorHalfAngleDegrees * Math.PI / 180;
+    const angle = heading + (Math.random() * 2 - 1) * halfAngle;
+    const distance = debrisMinimumDistance + Math.random() * (debrisMaximumDistance - debrisMinimumDistance);
+    this.origin.set(position.x + Math.sin(angle) * distance, this.ceilingHeight, position.z + Math.cos(angle) * distance);
+    return this.origin.x >= this.spawnBounds.min.x && this.origin.x <= this.spawnBounds.max.x
+      && this.origin.z >= this.spawnBounds.min.z && this.origin.z <= this.spawnBounds.max.z;
   }
 
   reset(): void {

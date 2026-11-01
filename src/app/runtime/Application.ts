@@ -187,7 +187,7 @@ export class Application {
       this.cameraController.update(
         this.player.object.position, this.player.object.rotation.y - Math.PI, this.player.carriedObject?.collider,
       );
-      this.bombardment.update(this.camera);
+      this.bombardment.update(this.camera, this.player.object.position);
       this.interactionPrompt.update(
         this.interactionController.candidate, this.interactionController.canPutDown, this.camera
       );

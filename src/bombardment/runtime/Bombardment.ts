@@ -1,3 +1,4 @@
+import { Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import type { IBombardment } from '../contracts/IBombardment';
 import type { IDustEffect } from '../../dust/contracts/IDustEffect';
@@ -10,6 +11,7 @@ export class Bombardment implements IBombardment {
   private startTime: number | undefined;
   private nextImpactTime = 0;
   private lastImpact = 0;
+  private readonly cameraDirection = new Vector3();
 
   constructor(
     private readonly dust: IDustEffect,
@@ -43,7 +45,7 @@ export class Bombardment implements IBombardment {
     this.scheduleImpact();
   }
 
-  update(camera: PerspectiveCamera): void {
+  update(camera: PerspectiveCamera, playerPosition: Vector3): void {
     if (this.startTime === undefined) return;
     const time = this.audioContext.currentTime;
     while (this.nextImpactTime - this.buffers.get('bomb-whistle')!.duration <= time + 1) {
@@ -56,7 +58,10 @@ export class Bombardment implements IBombardment {
     if (impact > this.lastImpact) {
       this.lastImpact = impact;
       // Do not replay an old burst when returning from a background tab.
-      if (impactAge < 1.4) this.ceilingDebris.burst(camera.position);
+      if (impactAge < 1.4) {
+        camera.getWorldDirection(this.cameraDirection);
+        this.ceilingDebris.burst(playerPosition, this.cameraDirection);
+      }
     }
     if (elapsed < 15) return;
     if (impactAge >= 1.4) return;
