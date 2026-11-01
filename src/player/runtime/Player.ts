@@ -1,34 +1,21 @@
 import { Group, MathUtils, Vector3 } from 'three';
-import { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
 import type { ICarryPlacement } from '../../carrying/contracts/ICarryPlacement';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IPlayer } from '../contracts/IPlayer';
 import type { IPlayerVisual } from '../contracts/IPlayerVisual';
 import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
+import { PlayerMovement } from './PlayerMovement';
 import { PlayerStateMachine } from './PlayerStateMachine';
 
 export class Player implements IPlayer {
-  private static readonly colliderRadius = 0.43;
-  private static readonly colliderHeight = 1.8;
-  private static readonly fixedStep = 1 / 120;
-
   readonly object = new Group();
-  private readonly collider = new Capsule(
-    new Vector3(0, Player.colliderRadius, 0),
-    new Vector3(0, Player.colliderHeight - Player.colliderRadius, 0),
-    Player.colliderRadius,
-  );
-  private readonly spawn: Vector3;
+  private readonly movement: PlayerMovement;
   private readonly spawnRotationY: number;
-  private readonly velocity = new Vector3();
-  private readonly movement = new Vector3();
-  private readonly displacement = new Vector3();
-  private readonly minimumHeight: number;
+  private readonly movementVelocity = new Vector3();
   private readonly stateMachine = new PlayerStateMachine();
   private readonly holdingCenter = new Vector3();
   private readonly playerCenter = new Vector3();
-  private readonly previousCollider = new Capsule();
   private readonly stepStart = new Vector3();
   private traveledDistance = 0;
   private speed = 0;
@@ -36,35 +23,34 @@ export class Player implements IPlayer {
   private accumulator = 0;
 
   constructor(
-    private readonly world: ICollisionWorld,
+    world: ICollisionWorld,
     spawn: PlayerSpawnDto,
     private readonly carryPlacement: ICarryPlacement,
     private readonly visual: IPlayerVisual,
   ) {
-    this.minimumHeight = world.bounds.min.y - 3;
-    this.spawn = spawn.position.clone();
+    this.movement = new PlayerMovement(world, spawn.position);
     this.spawnRotationY = spawn.rotationY;
     this.object.name = 'PlayerController';
-    this.visual.object.position.y = -Player.colliderHeight / 2;
+    this.visual.object.position.y = -PlayerMovement.colliderHeight / 2;
     this.object.add(this.visual.object);
     this.reset();
   }
 
   update(delta: number, movement: Vector3, rotationY = this.object.rotation.y): void {
     this.targetRotationY += rotationY - this.object.rotation.y;
-    this.movement.set(movement.x, 0, movement.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.speed);
+    this.movementVelocity.set(movement.x, 0, movement.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.speed);
     const elapsed = Math.min(delta, 0.1);
     this.accumulator += elapsed;
     this.traveledDistance = 0;
     let simulatedTime = 0;
-    while (this.accumulator >= Player.fixedStep) {
+    while (this.accumulator >= PlayerMovement.fixedStep) {
       this.step();
-      this.accumulator -= Player.fixedStep;
-      simulatedTime += Player.fixedStep;
+      this.accumulator -= PlayerMovement.fixedStep;
+      simulatedTime += PlayerMovement.fixedStep;
     }
-    this.collider.getCenter(this.object.position);
+    this.movement.collider.getCenter(this.object.position);
     if (simulatedTime > 0) this.speed = this.traveledDistance / simulatedTime;
-    if (this.movement.lengthSq() === 0) this.speed = 0;
+    if (this.movementVelocity.lengthSq() === 0) this.speed = 0;
     this.visual.update(elapsed, this.speed, Boolean(this.carriedObject));
   }
 
@@ -74,14 +60,14 @@ export class Player implements IPlayer {
 
   canPickUp(crate: ICarryable): boolean {
     if (this.carriedObject) return false;
-    this.collider.getCenter(this.playerCenter);
+    this.movement.collider.getCenter(this.playerCenter);
     this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
     return this.carryPlacement.canOccupy(crate, this.holdingCenter, this.object.rotation.y);
   }
 
   canPutDown(): boolean {
     const crate = this.carriedObject;
-    return Boolean(crate && this.carryPlacement.findPlacement(crate, this.collider));
+    return Boolean(crate && this.carryPlacement.findPlacement(crate, this.movement.collider));
   }
 
   tryPickUp(crate: ICarryable): boolean {
@@ -94,7 +80,7 @@ export class Player implements IPlayer {
   tryPutDown(): boolean {
     const crate = this.carriedObject;
     if (!crate) return false;
-    const center = this.carryPlacement.findPlacement(crate, this.collider);
+    const center = this.carryPlacement.findPlacement(crate, this.movement.collider);
     if (!center) return false;
     crate.setPose(center, crate.collider.rotationY);
     this.stateMachine.stopCarrying();
@@ -107,42 +93,29 @@ export class Player implements IPlayer {
   }
 
   private step(): void {
-    this.stepStart.copy(this.collider.start);
+    this.stepStart.copy(this.movement.collider.start);
     this.rotate();
-    this.velocity.x = this.movement.x;
-    this.velocity.z = this.movement.z;
-    this.velocity.y -= 20 * Player.fixedStep;
+    this.movement.integrateVelocity(this.movementVelocity);
     for (const axis of ['x', 'z', 'y'] as const) {
-      this.previousCollider.copy(this.collider);
-      this.displacement.set(0, 0, 0);
-      this.displacement[axis] = this.velocity[axis] * Player.fixedStep;
-      this.collider.translate(this.displacement);
-      for (let iteration = 0; iteration < 6; iteration++) {
-        const collision = this.world.intersectCapsule(this.collider, this.carriedObject?.collider);
-        if (!collision) break;
-        this.collider.translate(this.displacement.copy(collision.normal).multiplyScalar(collision.depth + 0.00001));
-        const inwardSpeed = this.velocity.dot(collision.normal);
-        if (inwardSpeed < 0) this.velocity.addScaledVector(collision.normal, -inwardSpeed);
-      }
+      this.movement.moveAlongAxis(axis, this.carriedObject?.collider);
       const crate = this.carriedObject;
       if (crate) {
-        this.collider.getCenter(this.playerCenter);
+        this.movement.collider.getCenter(this.playerCenter);
         this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
         if (this.carryPlacement.canMove(crate, this.holdingCenter, this.object.rotation.y)) {
           this.syncCarriedObject();
         } else {
-          this.collider.copy(this.previousCollider);
-          this.velocity[axis] = 0;
+          this.movement.rollbackAxis(axis);
         }
       }
     }
-    if (this.collider.start.y < this.minimumHeight) {
+    if (this.movement.hasFallen) {
       this.reset();
       this.traveledDistance = 0;
       return;
     }
     this.traveledDistance += Math.hypot(
-      this.collider.start.x - this.stepStart.x, this.collider.start.z - this.stepStart.z,
+      this.movement.collider.start.x - this.stepStart.x, this.movement.collider.start.z - this.stepStart.z,
     );
   }
 
@@ -154,8 +127,8 @@ export class Player implements IPlayer {
       return;
     }
     const angle = Math.atan2(Math.sin(target - this.object.rotation.y), Math.cos(target - this.object.rotation.y));
-    const rotation = this.object.rotation.y + MathUtils.clamp(angle, -6 * Player.fixedStep, 6 * Player.fixedStep);
-    this.collider.getCenter(this.playerCenter);
+    const rotation = this.object.rotation.y + MathUtils.clamp(angle, -6 * PlayerMovement.fixedStep, 6 * PlayerMovement.fixedStep);
+    this.movement.collider.getCenter(this.playerCenter);
     this.carryPlacement.getHoldingCenter(this.playerCenter, rotation, crate, this.holdingCenter);
     if (this.carryPlacement.canMove(crate, this.holdingCenter, rotation)) {
       this.object.rotation.y = rotation;
@@ -168,7 +141,7 @@ export class Player implements IPlayer {
   private syncCarriedObject(): void {
     const crate = this.carriedObject;
     if (!crate) return;
-    this.collider.getCenter(this.playerCenter);
+    this.movement.collider.getCenter(this.playerCenter);
     this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
     crate.setPose(this.holdingCenter, this.object.rotation.y);
   }
@@ -183,14 +156,10 @@ export class Player implements IPlayer {
   }
 
   private reset(): void {
-    this.collider.start.copy(this.spawn);
-    this.collider.start.y += Player.colliderRadius;
-    this.collider.end.copy(this.spawn);
-    this.collider.end.y += Player.colliderHeight - Player.colliderRadius;
-    this.velocity.set(0, 0, 0);
+    this.movement.reset();
     this.object.rotation.y = this.spawnRotationY;
     this.targetRotationY = this.spawnRotationY;
-    this.collider.getCenter(this.object.position);
+    this.movement.collider.getCenter(this.object.position);
     this.syncCarriedObject();
   }
 }
