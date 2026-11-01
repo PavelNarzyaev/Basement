@@ -12,7 +12,10 @@ import type { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 export interface IGameplayFactory {
   createCarryable(model: Object3D): ICarryable;
   createCollisionWorld(model: Object3D, boxes: readonly OrientedBoxDto[]): ICollisionWorld;
-  createPlayer(world: ICollisionWorld, spawn: PlayerSpawnDto, onProgress: (percentage: number) => void): Promise<IPlayer>;
+  createPlayer(
+    world: ICollisionWorld, spawn: PlayerSpawnDto,
+    onProgress: (percentage: number) => void, signal: AbortSignal,
+  ): Promise<IPlayer>;
   createInteractionController(
     player: IPlayer, crates: readonly ICarryable[], world: ICollisionWorld,
   ): ICrateInteractionController;

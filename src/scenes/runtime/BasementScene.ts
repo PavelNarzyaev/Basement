@@ -19,7 +19,6 @@ import { SceneLayout } from './SceneLayout';
 import type { ICeilingDebris } from '../../ceiling_debris/contracts/ICeilingDebris';
 
 export class BasementScene implements IScene {
-  private static readonly modelUrl = `${import.meta.env.BASE_URL}models/basement/basement.glb`;
   private static readonly lampColor = '#ffdfaa';
   private static readonly lampIntensity = 5;
   private static readonly lampDistance = 150;
@@ -29,18 +28,31 @@ export class BasementScene implements IScene {
   trolleyCargoZone!: OrientedBoxDto;
   playerSpawn!: PlayerSpawnDto;
   private isDisposed = false;
+  private crateModel: Object3D | undefined;
 
   constructor(
     private readonly objectDisposer: IObject3DDisposer,
     private readonly dust: IDustEffect,
     private readonly ceilingDebris: ICeilingDebris,
+    private readonly baseUrl: string,
   ) {
     this.scene.background = new Color('#151a24');
     this.scene.fog = new FogExp2(new Color(dustColor).multiplyScalar(dustBrightness), dustFogDensity);
   }
 
   async load(onProgress: (percentage: number) => void): Promise<Object3D | undefined> {
-    const model = await new GLTFLoader().loadAsync(BasementScene.modelUrl, (event) => {
+    try {
+      return await this.loadModels((percentage) => {
+        if (!this.isDisposed) onProgress(percentage);
+      });
+    } catch (error) {
+      this.dispose();
+      throw error;
+    }
+  }
+
+  private async loadModels(onProgress: (percentage: number) => void): Promise<Object3D | undefined> {
+    const model = await new GLTFLoader().loadAsync(`${this.baseUrl}models/basement/basement.glb`, (event) => {
       if (event.lengthComputable) {
         onProgress((event.loaded / event.total) * 80);
       }
@@ -53,13 +65,14 @@ export class BasementScene implements IScene {
     const layout = new SceneLayout(model.scene);
     this.trolleyCargoZone = layout.cargoZone;
     this.playerSpawn = layout.playerSpawn;
-    const crateModel = await new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/crate/Crate.glb`, (event) => {
+    const crateModel = await new GLTFLoader().loadAsync(`${this.baseUrl}models/crate/Crate.glb`, (event) => {
       if (event.lengthComputable) onProgress(80 + event.loaded / event.total * 20);
     });
     if (this.isDisposed) {
       this.objectDisposer.dispose(crateModel.scene);
       return;
     }
+    this.crateModel = crateModel.scene;
     for (const [index, placement] of layout.cratePlacements.entries()) {
       const crate = crateModel.scene.clone(true);
       crate.name = `MovableCrate_${index + 1}`;
@@ -82,10 +95,13 @@ export class BasementScene implements IScene {
   }
 
   dispose(): void {
+    if (this.isDisposed) return;
     this.isDisposed = true;
     this.dust.dispose();
     this.ceilingDebris.dispose();
-    this.objectDisposer.dispose(this.scene);
+    this.objectDisposer.dispose(this.scene, ...(this.crateModel ? [this.crateModel] : []));
+    this.crateModel = undefined;
+    this.movableCrates.length = 0;
     this.scene.clear();
   }
 

@@ -1,6 +1,5 @@
 import { Bombardment } from './bombardment/runtime/Bombardment';
 import { CeilingDebris } from './ceiling_debris/runtime/CeilingDebris';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Application } from './app/runtime/Application';
 import type { IGameplayFactory } from './app/contracts/IGameplayFactory';
 import { ThirdPersonCameraController } from './camera/runtime/ThirdPersonCameraController';
@@ -19,8 +18,7 @@ import { StartupSettingsDialog } from './startup/runtime/StartupSettingsDialog';
 import { Object3DDisposer } from './disposer/runtime/Object3DDisposer';
 import { DustEffect } from './dust/runtime/DustEffect';
 import { BasementScene } from './scenes/runtime/BasementScene';
-import { Player } from './player/runtime/Player';
-import { PlayerVisual } from './player/runtime/PlayerVisual';
+import { PlayerFactory } from './player/runtime/PlayerFactory';
 import './style.css';
 import { CrateObjective } from './objective/runtime/CrateObjective';
 
@@ -31,9 +29,10 @@ if (!canvas) {
 }
 
 const objectDisposer = new Object3DDisposer();
+const playerFactory = new PlayerFactory(objectDisposer, import.meta.env.BASE_URL);
 const dust = new DustEffect();
 const ceilingDebris = new CeilingDebris();
-const scene = new BasementScene(objectDisposer, dust, ceilingDebris);
+const scene = new BasementScene(objectDisposer, dust, ceilingDebris, import.meta.env.BASE_URL);
 const overlayFactory = new CanvasOverlayFactory();
 const joystick = new VirtualJoystick(canvas, overlayFactory);
 const interactionPrompt = new InteractionPrompt(canvas, overlayFactory);
@@ -45,18 +44,9 @@ const gameplayFactory: IGameplayFactory = {
   createCollisionWorld(model, boxes) {
     return new CollisionWorld(model, boxes);
   },
-  async createPlayer(world, spawn, onProgress) {
+  createPlayer(world, spawn, onProgress, signal) {
     const carryPlacement = new CarryPlacement(world, new BoxCollision());
-    const model = await new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/player/player.glb`, (event) => {
-      if (event.lengthComputable) onProgress(event.loaded / event.total * 100);
-    });
-    try {
-      const visual = new PlayerVisual(model.scene, model.animations, objectDisposer);
-      return new Player(world, spawn, carryPlacement, visual);
-    } catch (error) {
-      objectDisposer.dispose(model.scene);
-      throw error;
-    }
+    return playerFactory.create(world, spawn, carryPlacement, onProgress, signal);
   },
   createInteractionController(player, crates, world) {
     return new CrateInteractionController(player, crates, world);
@@ -68,7 +58,7 @@ const gameplayFactory: IGameplayFactory = {
     return controlMode === ControlMode.Touch ? new TouchInput(canvas, joystick) : new DesktopInput(canvas);
   },
 };
-const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, new CrateObjective(), new Bombardment(dust, ceilingDebris));
+const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, new CrateObjective(), new Bombardment(dust, ceilingDebris, import.meta.env.BASE_URL));
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => application.dispose());

@@ -1,5 +1,5 @@
-import { AnimationMixer, MathUtils, SkinnedMesh } from 'three';
-import type { AnimationAction, AnimationClip, Object3D, Skeleton } from 'three';
+import { AnimationMixer, MathUtils } from 'three';
+import type { AnimationAction, AnimationClip, Object3D } from 'three';
 import type { IObject3DDisposer } from '../../disposer/contracts/IObject3DDisposer';
 import type { IPlayerVisual } from '../contracts/IPlayerVisual';
 
@@ -55,11 +55,6 @@ export class PlayerVisual implements IPlayerVisual {
   dispose(): void {
     this.mixer.stopAllAction();
     this.mixer.uncacheRoot(this.object);
-    const skeletons = new Set<Skeleton>();
-    this.object.traverse((object) => {
-      if (object instanceof SkinnedMesh) skeletons.add(object.skeleton);
-    });
-    for (const skeleton of skeletons) skeleton.dispose();
     this.object.removeFromParent();
     this.objectDisposer.dispose(this.object);
   }

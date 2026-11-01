@@ -29,6 +29,7 @@ export class Application {
   private previousTime: number | undefined;
   private readonly status = document.createElement('p');
   private isDisposed = false;
+  private readonly loadingController = new AbortController();
   private readonly resizeObserver: ResizeObserver;
 
   constructor(
@@ -40,24 +41,32 @@ export class Application {
     private readonly gameplayFactory: IGameplayFactory,
     private readonly objective: ICrateObjective,
     private readonly bombardment: IBombardment,
+    renderer = new WebGLRenderer({ canvas, antialias: true }),
   ) {
-    this.renderer = new WebGLRenderer({ canvas, antialias: true });
+    this.renderer = renderer;
     this.camera.position.set(2.5, 1.8, 3.5);
     this.camera.lookAt(0, 0, 0);
     this.status.className = 'scene-status';
     this.status.setAttribute('role', 'status');
     this.updateLoadingProgress(0);
     document.body.append(this.status);
-    void this.loadScene();
 
     this.resizeObserver = new ResizeObserver(this.resize);
     this.resizeObserver.observe(canvas);
     this.resize();
     this.renderer.setAnimationLoop(this.animate);
+    void this.loadScene();
   }
 
   dispose(): void {
+    this.status.remove();
+    this.releaseResources();
+  }
+
+  private releaseResources(): void {
+    if (this.isDisposed) return;
     this.isDisposed = true;
+    this.loadingController.abort();
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();
     this.disposeGameplay();
@@ -66,7 +75,6 @@ export class Application {
     this.interactionPrompt.dispose();
     this.objective.dispose();
     this.bombardment.dispose();
-    this.status.remove();
     this.scene.dispose();
     this.renderer.dispose();
   }
@@ -88,6 +96,7 @@ export class Application {
       const player = await this.gameplayFactory.createPlayer(
         this.collisionWorld, this.scene.playerSpawn,
         (percentage) => this.updateLoadingProgress(90 + percentage * 0.1),
+        this.loadingController.signal,
       );
       if (this.isDisposed) {
         player.dispose();
@@ -107,7 +116,8 @@ export class Application {
       this.startupSettingsDialog.open(this.startGameplay);
     } catch (error) {
       if (this.isDisposed) return;
-      this.disposeGameplay();
+      this.releaseResources();
+      this.status.hidden = false;
       this.status.textContent = 'Не удалось запустить сцену. Подробности ошибки — в консоли браузера.';
       this.status.setAttribute('role', 'alert');
       console.error('Scene initialization failed:', error);
@@ -115,6 +125,7 @@ export class Application {
   }
 
   private readonly updateLoadingProgress = (percentage: number): void => {
+    if (this.isDisposed) return;
     this.status.textContent = `Загрузка: ${Math.floor(percentage)}%`;
   };
 
@@ -127,6 +138,7 @@ export class Application {
     this.cameraController = undefined;
     this.collisionWorld = undefined;
     this.interactionController = undefined;
+    this.crates = [];
   }
 
   private readonly startGameplay = (settings: StartupSettingsDto): void => {

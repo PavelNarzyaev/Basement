@@ -19,6 +19,8 @@ class AudioClock {
   currentTime = 0;
   destination = {};
   sources: AudioSource[] = [];
+  closeCount = 0;
+  async decodeAudioData(): Promise<AudioBuffer> { return { duration: 2 } as AudioBuffer; }
   createBufferSource(): AudioSource {
     const source = new AudioSource();
     this.sources.push(source);
@@ -26,7 +28,7 @@ class AudioClock {
   }
   createGain() { return { gain: { value: 1 }, connect() {}, disconnect() {} }; }
   async resume(): Promise<void> {}
-  async close(): Promise<void> {}
+  async close(): Promise<void> { this.closeCount++; }
 }
 
 function createFixture(context: TestContext) {
@@ -56,6 +58,7 @@ function createFixture(context: TestContext) {
       object: new Object3D(), initialize() {}, update() {}, dispose() {},
       burst() { burstCount++; }, reset() { resetCount++; },
     },
+    '/',
   );
   // Supply decoded assets without involving network or browser audio decoding.
   const buffers = (bombardment as unknown as { buffers: Map<string, AudioBuffer> }).buffers;
@@ -64,7 +67,7 @@ function createFixture(context: TestContext) {
   }
   context.after(() => bombardment.dispose());
   return {
-    clock, page, bombardment, strengths,
+    clock, page, bombardment, strengths, buffers,
     get burstCount() { return burstCount; },
     get resetCount() { return resetCount; },
     update(time: number) {
@@ -180,4 +183,82 @@ test('visibility changes before start and after disposal do not schedule audio',
   fixture.setHidden(true);
   fixture.setHidden(false);
   assert.equal(fixture.clock.sources.length, 4);
+});
+
+for (const stage of ['fetch', 'body', 'decode'] as const) {
+  test(`disposal during sound ${stage} discards late results and aborts requests`, async (context) => {
+    const fixture = createFixture(context);
+    fixture.buffers.clear();
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const signals: AbortSignal[] = [];
+    context.mock.method(globalThis, 'fetch', async (_url: string, options: RequestInit) => {
+      signals.push(options.signal!);
+      if (stage === 'fetch') await gate;
+      return {
+        ok: true,
+        async arrayBuffer() {
+          if (stage === 'body') await gate;
+          return new ArrayBuffer(0);
+        },
+      };
+    });
+    context.mock.method(fixture.clock, 'decodeAudioData', async () => {
+      if (stage === 'decode') await gate;
+      return { duration: 2 } as AudioBuffer;
+    });
+    const loading = fixture.bombardment.load();
+    const rejection = assert.rejects(loading, { name: 'AbortError' });
+    await new Promise(resolve => setImmediate(resolve));
+    fixture.bombardment.dispose();
+    assert.ok(signals.every(signal => signal.aborted));
+    release();
+    await rejection;
+    assert.equal(fixture.buffers.size, 0);
+    assert.equal(fixture.clock.closeCount, 1);
+    assert.equal(fixture.clock.sources.length, 0);
+  });
+}
+
+for (const name of ['background', 'bomb-whistle', 'bomb-explosion', 'siren']) {
+  for (const stage of ['fetch', 'body', 'decode'] as const) {
+    test(`${name} ${stage} failure releases all audio assets`, async (context) => {
+      const fixture = createFixture(context);
+      fixture.buffers.clear();
+      const failure = new Error('Asset failure');
+      const signals: AbortSignal[] = [];
+      context.mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
+        signals.push(options.signal!);
+        const isFailedAsset = url.endsWith(`/${name}.mp3`);
+        if (isFailedAsset && stage === 'fetch') throw failure;
+        return {
+          ok: true,
+          async arrayBuffer() {
+            if (isFailedAsset && stage === 'body') throw failure;
+            return new Uint8Array([isFailedAsset ? 1 : 0]).buffer;
+          },
+        };
+      });
+      context.mock.method(fixture.clock, 'decodeAudioData', async (data: ArrayBuffer) => {
+        if (new Uint8Array(data)[0] === 1 && stage === 'decode') throw failure;
+        return { duration: 2 } as AudioBuffer;
+      });
+      await assert.rejects(fixture.bombardment.load(), failure);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(fixture.buffers.size, 0);
+      assert.ok(signals.every(signal => signal.aborted));
+      fixture.bombardment.dispose();
+      assert.equal(fixture.clock.closeCount, 1);
+    });
+  }
+}
+
+test('invalid whistle duration releases decoded audio assets', async (context) => {
+  const fixture = createFixture(context);
+  fixture.buffers.clear();
+  context.mock.method(globalThis, 'fetch', async () => new Response(new ArrayBuffer(0)));
+  context.mock.method(fixture.clock, 'decodeAudioData', async () => ({ duration: 16 }) as AudioBuffer);
+  await assert.rejects(fixture.bombardment.load(), /whistle must fit/);
+  assert.equal(fixture.buffers.size, 0);
+  assert.equal(fixture.clock.closeCount, 1);
 });

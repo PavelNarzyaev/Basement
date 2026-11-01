@@ -10,6 +10,8 @@ export class Bombardment implements IBombardment {
   private readonly sources = new Set<AudioBufferSourceNode>();
   private readonly impactSources = new Set<AudioBufferSourceNode>();
   private readonly visibilityController = new AbortController();
+  private readonly loadingController = new AbortController();
+  private isDisposed = false;
   private startTime: number | undefined;
   private nextImpactTime = 0;
   private lastImpact = 0;
@@ -18,6 +20,7 @@ export class Bombardment implements IBombardment {
   constructor(
     private readonly dust: IDustEffect,
     private readonly ceilingDebris: ICeilingDebris,
+    private readonly baseUrl: string,
   ) {
     document.addEventListener('visibilitychange', this.handleVisibilityChange, {
       signal: this.visibilityController.signal,
@@ -25,14 +28,27 @@ export class Bombardment implements IBombardment {
   }
 
   async load(): Promise<void> {
-    await Promise.all(['background', 'bomb-whistle', 'bomb-explosion', 'siren'].map(async (name) => {
-      const response = await fetch(`${import.meta.env.BASE_URL}sounds/${name}.mp3`);
-      if (!response.ok) throw new Error(`Could not load sound ${name}: ${response.status}`);
-      const buffer = await this.audioContext.decodeAudioData(await response.arrayBuffer());
-      this.buffers.set(name, buffer);
-    }));
-    if (this.buffers.get('bomb-whistle')!.duration > 15) {
-      throw new Error('Bomb whistle must fit within the 15-second bombardment interval.');
+    const signal = this.loadingController.signal;
+    signal.throwIfAborted();
+    const buffers = new Map<string, AudioBuffer>();
+    try {
+      await Promise.all(['background', 'bomb-whistle', 'bomb-explosion', 'siren'].map(async (name) => {
+        const response = await fetch(`${this.baseUrl}sounds/${name}.mp3`, { signal });
+        if (!response.ok) throw new Error(`Could not load sound ${name}: ${response.status}`);
+        const data = await response.arrayBuffer();
+        signal.throwIfAborted();
+        const buffer = await this.audioContext.decodeAudioData(data);
+        signal.throwIfAborted();
+        buffers.set(name, buffer);
+      }));
+      if (buffers.get('bomb-whistle')!.duration > 15) {
+        throw new Error('Bomb whistle must fit within the 15-second bombardment interval.');
+      }
+      for (const [name, buffer] of buffers) this.buffers.set(name, buffer);
+    } catch (error) {
+      buffers.clear();
+      this.dispose();
+      throw error;
     }
   }
 
@@ -84,10 +100,15 @@ export class Bombardment implements IBombardment {
   }
 
   dispose(): void {
+    if (this.isDisposed) return;
+    this.isDisposed = true;
+    this.loadingController.abort();
     this.visibilityController.abort();
     for (const source of this.sources) source.stop();
     this.sources.clear();
     this.impactSources.clear();
+    this.buffers.clear();
+    this.startTime = undefined;
     void this.audioContext.close();
   }
 
