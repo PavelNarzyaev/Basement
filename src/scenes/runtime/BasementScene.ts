@@ -1,6 +1,7 @@
 import {
   Box3,
   Color,
+  FogExp2,
   PointLight,
   Scene,
   Vector3,
@@ -10,6 +11,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { IObject3DDisposer } from '../../disposer/contracts/IObject3DDisposer';
 import type { IDustEffect } from '../../dust/contracts/IDustEffect';
 import { DustVolumeDto } from '../../dust/contracts/DustVolumeDto';
+import { dustBrightness, dustColor, dustFogDensity } from '../../dust/contracts/dustAppearance';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import type { IScene } from '../contracts/IScene';
 
@@ -30,6 +32,7 @@ export class BasementScene implements IScene {
     private readonly dust: IDustEffect,
   ) {
     this.scene.background = new Color('#151a24');
+    this.scene.fog = new FogExp2(new Color(dustColor).multiplyScalar(dustBrightness), dustFogDensity);
   }
 
   async load(onProgress: (percentage: number) => void): Promise<Object3D | undefined> {

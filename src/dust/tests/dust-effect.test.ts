@@ -13,6 +13,19 @@ function createDust() {
   return dust;
 }
 
+test('particle reserve stays local when the basement gets longer', () => {
+  const short = createDust();
+  const long = new DustEffect();
+  long.initialize(new DustVolumeDto(
+    new Box3(new Vector3(-5, 0, -200), new Vector3(5, 6, 200)),
+  ));
+  const count = short.object.geometry.getAttribute('position').count;
+  assert.equal(long.object.geometry.getAttribute('position').count, count);
+  assert.ok(count < 10 * 6 * 40 * 6 / 2);
+  short.dispose();
+  long.dispose();
+});
+
 test('bombardment settings blend in and settle back without replacing particle buffers', () => {
   const dust = createDust();
   const positions = dust.object.geometry.getAttribute('position');
