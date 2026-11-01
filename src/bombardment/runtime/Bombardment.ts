@@ -8,6 +8,8 @@ export class Bombardment implements IBombardment {
   private readonly audioContext = new AudioContext();
   private readonly buffers = new Map<string, AudioBuffer>();
   private readonly sources = new Set<AudioBufferSourceNode>();
+  private readonly impactSources = new Set<AudioBufferSourceNode>();
+  private readonly visibilityController = new AbortController();
   private startTime: number | undefined;
   private nextImpactTime = 0;
   private lastImpact = 0;
@@ -16,7 +18,11 @@ export class Bombardment implements IBombardment {
   constructor(
     private readonly dust: IDustEffect,
     private readonly ceilingDebris: ICeilingDebris,
-  ) {}
+  ) {
+    document.addEventListener('visibilitychange', this.handleVisibilityChange, {
+      signal: this.visibilityController.signal,
+    });
+  }
 
   async load(): Promise<void> {
     await Promise.all(['background', 'bomb-whistle', 'bomb-explosion', 'siren'].map(async (name) => {
@@ -36,21 +42,26 @@ export class Bombardment implements IBombardment {
     this.ceilingDebris.reset();
     for (const source of this.sources) source.stop();
     this.sources.clear();
+    this.impactSources.clear();
     // Resume inside the start/restart gesture to unlock audio on mobile browsers.
     void this.audioContext.resume().catch((error: unknown) => console.error('Could not start audio:', error));
     this.startTime = this.audioContext.currentTime;
     this.nextImpactTime = this.startTime + 15;
     this.play('background', this.startTime, true);
     this.play('siren', this.startTime + 50, true);
-    this.scheduleImpact();
+    if (!document.hidden) this.scheduleImpact();
   }
 
   update(camera: PerspectiveCamera, playerPosition: Vector3): void {
-    if (this.startTime === undefined) return;
+    if (this.startTime === undefined || document.hidden) return;
     const time = this.audioContext.currentTime;
-    while (this.nextImpactTime - this.buffers.get('bomb-whistle')!.duration <= time + 1) {
-      this.scheduleImpact();
+    const whistleDuration = this.buffers.get('bomb-whistle')!.duration;
+    const nextWhistleTime = this.nextImpactTime - whistleDuration;
+    // Skip whole impacts whose whistle can no longer start on time.
+    if (nextWhistleTime < time) {
+      this.nextImpactTime += Math.ceil((time - nextWhistleTime) / 15) * 15;
     }
+    if (this.nextImpactTime - whistleDuration <= time + 1) this.scheduleImpact();
     const elapsed = time - this.startTime;
     const impact = Math.floor(elapsed / 15);
     const impactAge = elapsed % 15;
@@ -73,18 +84,36 @@ export class Bombardment implements IBombardment {
   }
 
   dispose(): void {
+    this.visibilityController.abort();
     for (const source of this.sources) source.stop();
     this.sources.clear();
+    this.impactSources.clear();
     void this.audioContext.close();
   }
 
+  private readonly handleVisibilityChange = (): void => {
+    if (this.startTime === undefined) return;
+    for (const source of this.impactSources) {
+      source.stop();
+      this.sources.delete(source);
+    }
+    this.impactSources.clear();
+    this.dust.setImpactStrength(0);
+    this.ceilingDebris.reset();
+    if (document.hidden) return;
+    this.startTime = this.audioContext.currentTime;
+    this.nextImpactTime = this.startTime + 15;
+    this.lastImpact = 0;
+    this.scheduleImpact();
+  };
+
   private scheduleImpact(): void {
-    this.play('bomb-whistle', this.nextImpactTime - this.buffers.get('bomb-whistle')!.duration);
-    this.play('bomb-explosion', this.nextImpactTime + 0.2);
+    this.impactSources.add(this.play('bomb-whistle', this.nextImpactTime - this.buffers.get('bomb-whistle')!.duration));
+    this.impactSources.add(this.play('bomb-explosion', this.nextImpactTime + 0.2));
     this.nextImpactTime += 15;
   }
 
-  private play(name: string, time: number, isLooping = false): void {
+  private play(name: string, time: number, isLooping = false): AudioBufferSourceNode {
     const source = this.audioContext.createBufferSource();
     source.buffer = this.buffers.get(name)!;
     source.loop = isLooping;
@@ -94,10 +123,12 @@ export class Bombardment implements IBombardment {
     gain.connect(this.audioContext.destination);
     source.onended = () => {
       this.sources.delete(source);
+      this.impactSources.delete(source);
       source.disconnect();
       gain.disconnect();
     };
     this.sources.add(source);
     source.start(time);
+    return source;
   }
 }
