@@ -160,6 +160,8 @@ export class Player implements IPlayer {
     if (this.carryPlacement.canMove(crate, this.holdingCenter, rotation)) {
       this.object.rotation.y = rotation;
       this.syncCarriedObject();
+    } else {
+      this.targetRotationY = this.object.rotation.y;
     }
   }
 

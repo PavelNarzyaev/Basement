@@ -81,3 +81,26 @@ test('carried crate blocks turning in place', () => {
   assert.ok(fixture.player.object.rotation.y < Math.PI / 2 - 0.1);
   assert.equal(fixture.world.hasBoxCollision(fixture.crate.collider), false);
 });
+
+for (const direction of [-1, 1]) {
+  test('blocked mouse turning discards input and allows immediate reversal: ' + direction, () => {
+    const wall = new Mesh(new BoxGeometry(0.1, 3, 5), new MeshBasicMaterial());
+    wall.position.set(direction * 0.6, 1.5, 1);
+    const fixture = new CarryingFixture([wall]);
+    assert.equal(fixture.player.tryPickUp(fixture.crate), true);
+    const movement = new Vector3();
+    for (let step = 0; step < 600; step++) {
+      const previousRotation = fixture.player.object.rotation.y;
+      fixture.player.update(1 / 120, movement, previousRotation + direction * 0.02);
+      assert.ok(direction * (fixture.player.object.rotation.y - previousRotation) >= -1e-10);
+      assert.equal(fixture.world.hasBoxCollision(fixture.crate.collider), false);
+    }
+    const blockedRotation = fixture.player.object.rotation.y;
+    assert.ok(direction * blockedRotation > 0);
+    assert.ok(direction * blockedRotation < Math.PI / 2);
+    fixture.advance(movement, 0.1);
+    assert.equal(fixture.player.object.rotation.y, blockedRotation);
+    fixture.player.update(1 / 120, movement, blockedRotation - direction * 0.02);
+    assert.ok(direction * (fixture.player.object.rotation.y - blockedRotation) < 0);
+  });
+}
