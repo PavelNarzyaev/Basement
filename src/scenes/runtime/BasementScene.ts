@@ -67,9 +67,10 @@ export class BasementScene implements IScene {
       this.movableCrates.push(new CrateSpawnDto(crate, placement.center, placement.rotationY));
     }
     this.addLampLights(model.scene);
-    this.dust.initialize(new DustVolumeDto(new Box3().setFromObject(model.scene)));
+    const bounds = new Box3().setFromObject(model.scene);
+    this.dust.initialize(new DustVolumeDto(bounds));
+    this.ceilingDebris.initialize(bounds.min.y, bounds.max.y);
     this.scene.add(this.dust.object);
-    this.ceilingDebris.initialize(model.scene);
     this.scene.add(this.ceilingDebris.object);
     onProgress(100);
     return model.scene;

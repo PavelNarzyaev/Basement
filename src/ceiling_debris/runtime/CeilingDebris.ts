@@ -1,4 +1,4 @@
-import { DynamicDrawUsage, InstancedMesh, MeshStandardMaterial, Object3D, Raycaster, TetrahedronGeometry, Vector3 } from 'three';
+import { DynamicDrawUsage, InstancedMesh, MeshStandardMaterial, Object3D, TetrahedronGeometry, Vector3 } from 'three';
 import type { ICeilingDebris } from '../contracts/ICeilingDebris';
 
 export class CeilingDebris implements ICeilingDebris {
@@ -10,13 +10,10 @@ export class CeilingDebris implements ICeilingDebris {
   private readonly velocities = new Float32Array(CeilingDebris.particleCount * 3);
   private readonly ages = new Float32Array(CeilingDebris.particleCount);
   private readonly sizes = new Float32Array(CeilingDebris.particleCount);
-  private readonly landingHeights = new Float32Array(CeilingDebris.particleCount);
   private readonly transform = new Object3D();
-  private readonly raycaster = new Raycaster();
   private readonly origin = new Vector3();
-  private readonly up = new Vector3(0, 1, 0);
-  private readonly down = new Vector3(0, -1, 0);
-  private model!: Object3D;
+  private floorHeight = 0;
+  private ceilingHeight = 0;
 
   constructor() {
     this.object.name = 'CeilingDebris';
@@ -26,9 +23,9 @@ export class CeilingDebris implements ICeilingDebris {
     this.reset();
   }
 
-  initialize(model: Object3D): void {
-    this.model = model;
-    model.updateWorldMatrix(true, true);
+  initialize(floorHeight: number, ceilingHeight: number): void {
+    this.floorHeight = floorHeight - 0.1;
+    this.ceilingHeight = ceilingHeight + 0.1;
   }
 
   burst(position: Vector3): void {
@@ -36,15 +33,7 @@ export class CeilingDebris implements ICeilingDebris {
     for (let patch = 0; patch < 6; patch++) {
       const angle = Math.random() * Math.PI * 2;
       const radius = 1 + Math.random() * 3;
-      this.origin.set(position.x + Math.cos(angle) * radius, position.y, position.z + Math.sin(angle) * radius);
-      this.raycaster.set(this.origin, this.up);
-      const ceiling = this.raycaster.intersectObject(this.model, true)[0];
-      // A patch may be outside the room or beneath an opening in the ceiling.
-      if (!ceiling) continue;
-      this.origin.copy(ceiling.point).addScaledVector(this.down, 0.04);
-      this.raycaster.set(this.origin, this.down);
-      const landing = this.raycaster.intersectObject(this.model, true)[0];
-      if (!landing) continue;
+      this.origin.set(position.x + Math.cos(angle) * radius, this.ceilingHeight, position.z + Math.sin(angle) * radius);
       for (let particle = 0; particle < 20; particle++) {
         const index = this.object.count++;
         const offset = index * 3;
@@ -52,7 +41,6 @@ export class CeilingDebris implements ICeilingDebris {
         this.velocities.set([(Math.random() - 0.5) * 0.7, -0.1 - Math.random() * 0.5, (Math.random() - 0.5) * 0.7], offset);
         this.ages[index] = -Math.random() * 0.65;
         this.sizes[index] = 0.008 + Math.random() * 0.022;
-        this.landingHeights[index] = landing.point.y + 0.04;
       }
     }
     this.update(0);
@@ -64,6 +52,7 @@ export class CeilingDebris implements ICeilingDebris {
 
   update(delta: number): void {
     const step = Math.min(delta, 0.1);
+    let hasRemainingParticles = false;
     for (let index = 0; index < this.object.count; index++) {
       const offset = index * 3;
       const previousAge = this.ages[index]!;
@@ -76,12 +65,14 @@ export class CeilingDebris implements ICeilingDebris {
       }
       this.transform.position.fromArray(this.positions, offset);
       this.transform.rotation.set(age * 3 + index, age * 2, index);
-      const isVisible = age >= 0 && age < 3 && this.transform.position.y > this.landingHeights[index]!;
-      this.transform.scale.setScalar(isVisible ? this.sizes[index]! * Math.min(1, (3 - age) * 4) : 0);
+      const isAboveFloor = this.transform.position.y > this.floorHeight;
+      hasRemainingParticles ||= isAboveFloor;
+      this.transform.scale.setScalar(age >= 0 && isAboveFloor ? this.sizes[index]! : 0);
       this.transform.updateMatrix();
       this.object.setMatrixAt(index, this.transform.matrix);
     }
     this.object.instanceMatrix.needsUpdate = true;
+    if (!hasRemainingParticles) this.reset();
   }
 
   dispose(): void {
