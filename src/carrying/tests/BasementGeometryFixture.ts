@@ -15,11 +15,10 @@ export class BasementGeometryFixture {
   readonly world: CollisionWorld;
   readonly player: Player;
 
-  private constructor(readonly model: Object3D) {
+  private constructor(readonly model: Object3D, crateModel: Object3D) {
     this.scene.add(model);
-    const crateModel = model.getObjectByName('MovableCrate');
-    if (!crateModel) throw new Error('Basement GLB is missing MovableCrate.');
-    this.scene.attach(crateModel);
+    crateModel.position.set(2, 0.109292, -4.45);
+    this.scene.add(crateModel);
     this.crate = new MovableCrate(crateModel);
     this.world = new CollisionWorld(model, [this.crate.collider]);
     const carryPlacement = new CarryPlacement(this.world, new BoxCollision());
@@ -31,7 +30,15 @@ export class BasementGeometryFixture {
   }
 
   static async load(): Promise<BasementGeometryFixture> {
-    const source = await readFile(new URL('../../../public/models/basement/basement.glb', import.meta.url));
+    const [model, crate] = await Promise.all([
+      this.loadGeometry('../../../public/models/basement/basement.glb'),
+      this.loadGeometry('../../../public/models/crate/Crate.glb'),
+    ]);
+    return new BasementGeometryFixture(model, crate);
+  }
+
+  static async loadGeometry(path: string): Promise<Object3D> {
+    const source = await readFile(new URL(path, import.meta.url));
     const sourceJsonLength = source.readUInt32LE(12);
     const content = JSON.parse(source.subarray(20, 20 + sourceJsonLength).toString('utf8'));
     // Keep the real geometry and hierarchy; collision tests do not need browser image decoding.
@@ -52,6 +59,6 @@ export class BasementGeometryFixture {
     json.copy(output, 20);
     binaryChunk.copy(output, 20 + jsonLength);
     const model = await new GLTFLoader().parseAsync(output.buffer as ArrayBuffer, '');
-    return new BasementGeometryFixture(model.scene);
+    return model.scene;
   }
 }

@@ -14,6 +14,8 @@ import { DustVolumeDto } from '../../dust/contracts/DustVolumeDto';
 import { dustBrightness, dustColor, dustFogDensity } from '../../dust/contracts/dustAppearance';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import type { IScene } from '../contracts/IScene';
+import type { ICollisionWorldFactory } from '../../collision/contracts/ICollisionWorldFactory';
+import { CrateScatterer } from './CrateScatterer';
 
 export class BasementScene implements IScene {
   private static readonly modelUrl = `${import.meta.env.BASE_URL}models/basement/basement.glb`;
@@ -26,11 +28,14 @@ export class BasementScene implements IScene {
   // Leave 0.05 units above the measured floor so gravity settles the collider.
   readonly playerSpawn = new PlayerSpawnDto(new Vector3(0, 0.104292 + 0.05, -13), Math.PI);
   private isDisposed = false;
+  private readonly crateScatterer: CrateScatterer;
 
   constructor(
     private readonly objectDisposer: IObject3DDisposer,
     private readonly dust: IDustEffect,
+    worldFactory: ICollisionWorldFactory,
   ) {
+    this.crateScatterer = new CrateScatterer(worldFactory);
     this.scene.background = new Color('#151a24');
     this.scene.fog = new FogExp2(new Color(dustColor).multiplyScalar(dustBrightness), dustFogDensity);
   }
@@ -38,21 +43,31 @@ export class BasementScene implements IScene {
   async load(onProgress: (percentage: number) => void): Promise<Object3D | undefined> {
     const model = await new GLTFLoader().loadAsync(BasementScene.modelUrl, (event) => {
       if (event.lengthComputable) {
-        onProgress((event.loaded / event.total) * 100);
+        onProgress((event.loaded / event.total) * 80);
       }
     });
     if (this.isDisposed) {
       this.objectDisposer.dispose(model.scene);
       return;
     }
+    this.scene.add(model.scene);
+    const crateModel = await new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/crate/Crate.glb`, (event) => {
+      if (event.lengthComputable) onProgress(80 + event.loaded / event.total * 20);
+    });
+    if (this.isDisposed) {
+      this.objectDisposer.dispose(crateModel.scene);
+      return;
+    }
+    try {
+      this.movableCrates.push(...this.crateScatterer.scatter(model.scene, crateModel.scene, this.playerSpawn, 5));
+    } catch (error) {
+      this.objectDisposer.dispose(crateModel.scene);
+      throw error;
+    }
+    this.scene.add(...this.movableCrates);
     this.addLampLights(model.scene);
     this.dust.initialize(new DustVolumeDto(new Box3().setFromObject(model.scene)));
     this.scene.add(this.dust.object);
-    this.scene.add(model.scene);
-    const crate = model.scene.getObjectByName('MovableCrate');
-    if (!crate) throw new Error('Basement model is missing MovableCrate.');
-    this.scene.attach(crate);
-    this.movableCrates.push(crate);
     onProgress(100);
     return model.scene;
   }

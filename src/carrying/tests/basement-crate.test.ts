@@ -4,7 +4,7 @@ import { Vector3 } from 'three';
 import { CrateInteractionController } from '../runtime/CrateInteractionController';
 import { BasementGeometryFixture } from './BasementGeometryFixture';
 
-test('detects, carries and places the actual MovableCrate in the basement GLB', async () => {
+test('detects, carries and places the separate crate model in the basement', async () => {
   const fixture = await BasementGeometryFixture.load();
   const controller = new CrateInteractionController(fixture.player, [fixture.crate], fixture.world);
   fixture.player.update(1 / 60, new Vector3());
