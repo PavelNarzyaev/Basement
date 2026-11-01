@@ -71,7 +71,11 @@ export class Application {
       this.camera.near = 0.05;
       this.camera.far = 150;
       this.camera.updateProjectionMatrix();
-      const crates = this.scene.movableCrates.map((object) => this.gameplayFactory.createCarryable(object));
+      const crates = this.scene.movableCrates.map((spawn) => {
+        const crate = this.gameplayFactory.createCarryable(spawn.model);
+        crate.setPose(spawn.center, spawn.rotationY);
+        return crate;
+      });
       this.collisionWorld = this.gameplayFactory.createCollisionWorld(model, crates.map((crate) => crate.collider));
       const player = await this.gameplayFactory.createPlayer(
         this.collisionWorld, this.scene.playerSpawn,

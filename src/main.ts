@@ -29,9 +29,7 @@ if (!canvas) {
 
 const objectDisposer = new Object3DDisposer();
 const dust = new DustEffect();
-const scene = new BasementScene(objectDisposer, dust, {
-  create: (model, boxes) => new CollisionWorld(model, boxes),
-});
+const scene = new BasementScene(objectDisposer, dust);
 const overlayFactory = new CanvasOverlayFactory();
 const joystick = new VirtualJoystick(canvas, overlayFactory);
 const interactionPrompt = new InteractionPrompt(canvas, overlayFactory);

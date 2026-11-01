@@ -14,28 +14,31 @@ import { DustVolumeDto } from '../../dust/contracts/DustVolumeDto';
 import { dustBrightness, dustColor, dustFogDensity } from '../../dust/contracts/dustAppearance';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import type { IScene } from '../contracts/IScene';
-import type { ICollisionWorldFactory } from '../../collision/contracts/ICollisionWorldFactory';
-import { CrateScatterer } from './CrateScatterer';
+import { CrateSpawnDto } from '../contracts/CrateSpawnDto';
 
 export class BasementScene implements IScene {
   private static readonly modelUrl = `${import.meta.env.BASE_URL}models/basement/basement.glb`;
   private static readonly lampColor = '#ffdfaa';
   private static readonly lampIntensity = 5;
   private static readonly lampDistance = 150;
+  private static readonly cratePoses = [
+    [-2.0723949967660116, 1.223901976943016, 6.682538890918395, 2.240222039230623],
+    [4.654424496244726, 0.3592826622724533, 17.10447766146656, 0],
+    [0.0639430627521131, 0.6812183457612991, -17.60044388080444, -3.1022779607693773],
+    [-1.6352098886545785, 0.3592826622724533, 21.5873938421339, 8.13840734641023],
+    [-4.183687647980426, 0.35928266227245353, -14.510487898589224, -9.03904673852597],
+  ] as const;
 
   readonly scene = new Scene();
-  readonly movableCrates: Object3D[] = [];
+  readonly movableCrates: CrateSpawnDto[] = [];
   // Leave 0.05 units above the measured floor so gravity settles the collider.
   readonly playerSpawn = new PlayerSpawnDto(new Vector3(0, 0.104292 + 0.05, -13), Math.PI);
   private isDisposed = false;
-  private readonly crateScatterer: CrateScatterer;
 
   constructor(
     private readonly objectDisposer: IObject3DDisposer,
     private readonly dust: IDustEffect,
-    worldFactory: ICollisionWorldFactory,
   ) {
-    this.crateScatterer = new CrateScatterer(worldFactory);
     this.scene.background = new Color('#151a24');
     this.scene.fog = new FogExp2(new Color(dustColor).multiplyScalar(dustBrightness), dustFogDensity);
   }
@@ -58,13 +61,12 @@ export class BasementScene implements IScene {
       this.objectDisposer.dispose(crateModel.scene);
       return;
     }
-    try {
-      this.movableCrates.push(...this.crateScatterer.scatter(model.scene, crateModel.scene, this.playerSpawn, 5));
-    } catch (error) {
-      this.objectDisposer.dispose(crateModel.scene);
-      throw error;
+    for (const [index, [x, y, z, rotationY]] of BasementScene.cratePoses.entries()) {
+      const crate = crateModel.scene.clone(true);
+      crate.name = `MovableCrate_${index + 1}`;
+      this.scene.add(crate);
+      this.movableCrates.push(new CrateSpawnDto(crate, new Vector3(x, y, z), rotationY));
     }
-    this.scene.add(...this.movableCrates);
     this.addLampLights(model.scene);
     this.dust.initialize(new DustVolumeDto(new Box3().setFromObject(model.scene)));
     this.scene.add(this.dust.object);
