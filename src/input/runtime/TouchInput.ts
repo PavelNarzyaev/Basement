@@ -2,17 +2,24 @@ import { Vector2 } from 'three';
 import type { IJoystickView } from '../contracts/IJoystickView';
 import type { IPlayerInput } from '../contracts/IPlayerInput';
 import { PlayerInputStateDto } from '../contracts/PlayerInputStateDto';
+import type { IInteractionButtonView } from '../../interaction_prompt/contracts/IInteractionButtonView';
 
 export class TouchInput implements IPlayerInput {
   private readonly events = new AbortController();
   private readonly movement = new Vector2();
   private readonly lookPosition = new Vector2();
+  private interactionPointer: number | undefined;
+  private isInteractionPressed = false;
   private movementPointer: number | undefined;
   private lookPointer: number | undefined;
   private yawDeltaRadians = 0;
   private pitchDeltaRadians = 0;
 
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly joystick: IJoystickView) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly joystick: IJoystickView,
+    private readonly interactionButton: IInteractionButtonView,
+  ) {
     const options = { signal: this.events.signal };
     canvas.addEventListener('pointerdown', this.onPointerDown, options);
     canvas.addEventListener('pointermove', this.onPointerMove, options);
@@ -25,7 +32,8 @@ export class TouchInput implements IPlayerInput {
   }
 
   read(): PlayerInputStateDto {
-    const state = new PlayerInputStateDto(this.movement.x, this.movement.y, this.yawDeltaRadians, this.pitchDeltaRadians);
+    const state = new PlayerInputStateDto(this.movement.x, this.movement.y, this.yawDeltaRadians, this.pitchDeltaRadians, this.isInteractionPressed);
+    this.isInteractionPressed = false;
     this.yawDeltaRadians = 0;
     this.pitchDeltaRadians = 0;
     return state;
@@ -38,6 +46,18 @@ export class TouchInput implements IPlayerInput {
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
+    const button = this.interactionButton.getInteractionButtonBounds();
+    const bounds = this.canvas.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    if (button && (x - button.centerX) ** 2 + (y - button.centerY) ** 2 <= button.radius ** 2) {
+      if (this.interactionPointer !== undefined) return;
+      this.interactionPointer = event.pointerId;
+      this.isInteractionPressed = true;
+      event.preventDefault();
+      this.canvas.setPointerCapture(event.pointerId);
+      return;
+    }
     const displacement = this.joystick.getJoystickDisplacement(event.clientX, event.clientY);
     if (displacement.length() <= 1) {
       if (this.movementPointer !== undefined) return;
@@ -63,6 +83,10 @@ export class TouchInput implements IPlayerInput {
   };
 
   private readonly onPointerEnd = (event: PointerEvent): void => {
+    if (event.pointerId === this.interactionPointer) {
+      this.interactionPointer = undefined;
+      if (event.type !== 'pointerup') this.isInteractionPressed = false;
+    }
     if (event.pointerId === this.movementPointer) {
       this.movementPointer = undefined;
       this.movement.set(0, 0);
@@ -77,7 +101,9 @@ export class TouchInput implements IPlayerInput {
   }
 
   private readonly clear = (): void => {
-    const pointers = [this.movementPointer, this.lookPointer];
+    const pointers = [this.interactionPointer, this.movementPointer, this.lookPointer];
+    this.interactionPointer = undefined;
+    this.isInteractionPressed = false;
     this.movementPointer = undefined;
     this.lookPointer = undefined;
     for (const pointer of pointers) {

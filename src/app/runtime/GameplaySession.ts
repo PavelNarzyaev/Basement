@@ -86,8 +86,7 @@ export class GameplaySession implements IGameplaySession {
     this.cameraController.addPitchDelta(input.pitchDeltaRadians);
     this.movement.set(input.movementX, 0, input.movementZ).applyAxisAngle(this.worldUp, this.cameraController.yaw);
     this.player.update(delta, this.movement, input.yawDeltaRadians);
-    const isTouchInteractionPressed = this.interactionPrompt.readInteraction();
-    this.interactionController.update(input.isInteractionPressed || isTouchInteractionPressed);
+    this.interactionController.update(input.isInteractionPressed);
     this.objective.update(this.player.carriedObject);
     this.cameraController.update(
       this.player.object.position, this.player.object.rotation.y - Math.PI, this.player.carriedObject?.collider,

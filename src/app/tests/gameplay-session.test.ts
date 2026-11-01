@@ -24,13 +24,13 @@ test('session preserves frame order and restarts ready gameplay without a render
     { focus() { events.push('focus'); } },
     new Scene(),
     new PerspectiveCamera(), {},
-    { readInteraction() { return true; }, update() { events.push('prompt'); } },
+    { update() { events.push('prompt'); } },
     {
       createCameraController() { return controller; },
       createInteractionController() { return { update(pressed: boolean) { events.push(`interaction ${pressed}`); } }; },
       createInput() {
         return {
-          read() { events.push('input'); return { movementX: 0, movementZ: 0, yawDeltaRadians: 0, pitchDeltaRadians: 0, isInteractionPressed: false }; },
+          read() { events.push('input'); return { movementX: 0, movementZ: 0, yawDeltaRadians: 0, pitchDeltaRadians: 0, isInteractionPressed: true }; },
           dispose() { events.push('input disposal'); },
         };
       },

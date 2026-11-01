@@ -5,6 +5,7 @@ import type { ICanvasOverlay } from '../../canvas_overlay/contracts/ICanvasOverl
 import type { ICanvasOverlayFactory } from '../../canvas_overlay/contracts/ICanvasOverlayFactory';
 import { touchControlLayout } from '../../input/contracts/touchControlLayout';
 import type { IInteractionPrompt } from '../contracts/IInteractionPrompt';
+import { InteractionButtonBoundsDto } from '../contracts/InteractionButtonBoundsDto';
 
 export class InteractionPrompt implements IInteractionPrompt {
   private readonly overlay: ICanvasOverlay;
@@ -14,14 +15,12 @@ export class InteractionPrompt implements IInteractionPrompt {
   private readonly touchTakeLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly touchPlaceLabel: Mesh<BufferGeometry, MeshBasicMaterial>;
   private readonly screenPosition = new Vector3();
-  private readonly events = new AbortController();
   private isTouchEnabled = false;
-  private isPressed = false;
   private width = 1;
   private height = 1;
   private touchRadius: number = touchControlLayout.maximumRadius;
 
-  constructor(canvas: HTMLCanvasElement, overlayFactory: ICanvasOverlayFactory) {
+  constructor(overlayFactory: ICanvasOverlayFactory) {
     this.overlay = overlayFactory.create();
     this.takeLabel = this.overlay.createLabel('E · Взять', 21);
     this.placeLabel = this.overlay.createLabel('E · Поставить', 21);
@@ -29,29 +28,16 @@ export class InteractionPrompt implements IInteractionPrompt {
     this.touchTakeLabel = this.overlay.createLabel('взять', 16);
     this.touchPlaceLabel = this.overlay.createLabel('поставить', 16);
     this.overlay.scene.add(this.takeLabel, this.placeLabel, this.touchPanel, this.touchTakeLabel, this.touchPlaceLabel);
-    // Registered before TouchInput: interaction taps must not also rotate the camera.
-    canvas.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0 || !this.touchPanel.visible || !this.overlay.scene.visible) return;
-      const bounds = canvas.getBoundingClientRect();
-      const x = event.clientX - bounds.left - this.touchPanel.position.x;
-      const y = event.clientY - bounds.top - this.touchPanel.position.y;
-      if (x * x + y * y > this.touchRadius * this.touchRadius) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      this.isPressed = true;
-    }, { signal: this.events.signal });
-    window.addEventListener('blur', this.clear, { signal: this.events.signal });
-    document.addEventListener('visibilitychange', this.clear, { signal: this.events.signal });
+
   }
 
   enableTouch(): void {
     this.isTouchEnabled = true;
   }
 
-  readInteraction(): boolean {
-    const pressed = this.isPressed;
-    this.isPressed = false;
-    return pressed;
+  getInteractionButtonBounds(): InteractionButtonBoundsDto | undefined {
+    if (!this.isTouchEnabled || !this.touchPanel.visible || !this.overlay.scene.visible) return undefined;
+    return new InteractionButtonBoundsDto(this.touchPanel.position.x, this.touchPanel.position.y, this.touchRadius);
   }
 
   resize(width: number, height: number): void {
@@ -93,11 +79,7 @@ export class InteractionPrompt implements IInteractionPrompt {
   }
 
   dispose(): void {
-    this.events.abort();
     this.overlay.dispose();
   }
 
-  private readonly clear = (): void => {
-    this.isPressed = false;
-  };
 }

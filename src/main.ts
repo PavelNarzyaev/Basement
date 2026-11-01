@@ -36,7 +36,7 @@ const ceilingDebris = new CeilingDebris();
 const scene = new BasementScene(objectDisposer, dust, ceilingDebris, import.meta.env.BASE_URL);
 const overlayFactory = new CanvasOverlayFactory();
 const joystick = new VirtualJoystick(canvas, overlayFactory);
-const interactionPrompt = new InteractionPrompt(canvas, overlayFactory);
+const interactionPrompt = new InteractionPrompt(overlayFactory);
 const startupSettingsDialog = new StartupSettingsDialog(canvas, overlayFactory);
 const gameplayFactory: IGameplayFactory = {
   createSession(player, world, crates, camera, sceneResult) {
@@ -59,7 +59,7 @@ const gameplayFactory: IGameplayFactory = {
     return new ThirdPersonCameraController(camera, world, initialYaw);
   },
   createInput(controlMode) {
-    return controlMode === ControlMode.Touch ? new TouchInput(canvas, joystick) : new DesktopInput(canvas);
+    return controlMode === ControlMode.Touch ? new TouchInput(canvas, joystick, interactionPrompt) : new DesktopInput(canvas);
   },
 };
 const objective = new CrateObjective();
