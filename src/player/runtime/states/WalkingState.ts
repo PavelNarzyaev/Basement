@@ -1,4 +1,4 @@
-import type { IPlayerState } from '../contracts/IPlayerState';
+import type { IPlayerState } from '../../contracts/IPlayerState';
 
 export class WalkingState implements IPlayerState {
   readonly speed = 4;

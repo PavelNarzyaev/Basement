@@ -1,7 +1,7 @@
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
 import type { IPlayerState } from '../contracts/IPlayerState';
-import { CarryingState } from './CarryingState';
-import { WalkingState } from './WalkingState';
+import { CarryingState } from './states/CarryingState';
+import { WalkingState } from './states/WalkingState';
 
 export class PlayerStateMachine {
   private readonly walkingState = new WalkingState();
