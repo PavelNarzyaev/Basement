@@ -20,6 +20,7 @@ import { BasementScene } from './scenes/runtime/BasementScene';
 import { Player } from './player/runtime/Player';
 import { PlayerVisual } from './player/runtime/PlayerVisual';
 import './style.css';
+import { CrateObjective } from './objective/runtime/CrateObjective';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 
@@ -64,7 +65,7 @@ const gameplayFactory: IGameplayFactory = {
     return controlMode === ControlMode.Touch ? new TouchInput(canvas, joystick) : new DesktopInput(canvas);
   },
 };
-const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory);
+const application = new Application(canvas, scene, joystick, interactionPrompt, startupSettingsDialog, gameplayFactory, new CrateObjective());
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => application.dispose());

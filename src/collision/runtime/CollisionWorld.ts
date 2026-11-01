@@ -1,4 +1,4 @@
-import { Box3, Vector3 } from 'three';
+import { Box3, Group, Mesh, Vector3 } from 'three';
 import type { Object3D, Ray, Sphere, Triangle } from 'three';
 import type { Capsule } from 'three/addons/math/Capsule.js';
 import { Octree } from 'three/addons/math/Octree.js';
@@ -16,8 +16,23 @@ export class CollisionWorld implements ICollisionWorld {
   private readonly triangles: Triangle[] = [];
 
   constructor(readonly model: Object3D, private readonly boxes: readonly OrientedBoxDto[] = []) {
-    this.octree = new Octree().fromGraphNode(model);
+    model.updateWorldMatrix(true, true);
+    const collisionGeometry = new Group();
+    this.collectCollisionMeshes(model, collisionGeometry);
+    this.octree = new Octree().fromGraphNode(collisionGeometry);
     this.bounds = new Box3().setFromObject(model);
+  }
+
+  private collectCollisionMeshes(object: Object3D, target: Group): void {
+    // Keep the named marker non-solid even in older exports without custom properties.
+    if (object.userData.collision === false || object.name === 'TrolleyCargoZone') return;
+    if (object instanceof Mesh) {
+      const mesh = object.clone(false);
+      mesh.matrixAutoUpdate = false;
+      mesh.matrix.copy(object.matrixWorld);
+      target.add(mesh);
+    }
+    for (const child of object.children) this.collectCollisionMeshes(child, target);
   }
 
   intersectCapsule(capsule: Capsule, ignoredBox?: OrientedBoxDto): CollisionDto | false {

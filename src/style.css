@@ -2,6 +2,38 @@
   background: #151a24;
 }
 
+.crate-objective {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  box-sizing: border-box;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  color: #f5eee4;
+  background: #202632ed;
+  font: 1rem/1.5 system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+.crate-objective p { margin: 0; }
+.crate-objective button {
+  margin-top: 0.75rem;
+  min-height: 44px;
+  padding: 0.5rem 1.5rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: #435b48;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
 }

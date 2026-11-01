@@ -11,6 +11,8 @@ import type { StartupSettingsDto } from '../../startup/contracts/StartupSettings
 import type { IStartupSettingsDialog } from '../../startup/contracts/IStartupSettingsDialog';
 import type { IInteractionPrompt } from '../../interaction_prompt/contracts/IInteractionPrompt';
 import type { IGameplayFactory } from '../contracts/IGameplayFactory';
+import type { ICrateObjective } from '../../objective/contracts/ICrateObjective';
+import type { ICarryable } from '../../carrying/contracts/ICarryable';
 
 export class Application {
   private readonly renderer: WebGLRenderer;
@@ -20,6 +22,7 @@ export class Application {
   private cameraController: ICameraController | undefined;
   private collisionWorld: ICollisionWorld | undefined;
   private interactionController: ICrateInteractionController | undefined;
+  private crates: readonly ICarryable[] = [];
   private readonly movement = new Vector3();
   private readonly worldUp = new Vector3(0, 1, 0);
   private previousTime: number | undefined;
@@ -34,6 +37,7 @@ export class Application {
     private readonly interactionPrompt: IInteractionPrompt,
     private readonly startupSettingsDialog: IStartupSettingsDialog,
     private readonly gameplayFactory: IGameplayFactory,
+    private readonly objective: ICrateObjective,
   ) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
     this.camera.position.set(2.5, 1.8, 3.5);
@@ -58,6 +62,7 @@ export class Application {
     this.startupSettingsDialog.dispose();
     this.joystick.dispose();
     this.interactionPrompt.dispose();
+    this.objective.dispose();
     this.status.remove();
     this.scene.dispose();
     this.renderer.dispose();
@@ -86,6 +91,7 @@ export class Application {
         return;
       }
       this.player = player;
+      this.crates = crates;
       this.interactionController = this.gameplayFactory.createInteractionController(this.player, crates, this.collisionWorld);
       // The orbit angle points from the target to the camera, opposite the player's facing direction.
       const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
@@ -130,6 +136,22 @@ export class Application {
       this.interactionPrompt.enableTouch();
     }
     this.input = this.gameplayFactory.createInput(settings.controlMode);
+    this.objective.start(this.crates, this.scene.trolleyCargoZone, this.restartGameplay);
+  };
+
+  private readonly restartGameplay = (): void => {
+    this.player!.restart();
+    this.crates.forEach((crate, index) => {
+      const spawn = this.scene.movableCrates[index]!;
+      crate.setPose(spawn.center, spawn.rotationY);
+    });
+    const cameraYaw = this.scene.playerSpawn.rotationY - Math.PI;
+    this.cameraController = this.gameplayFactory.createCameraController(this.camera, this.collisionWorld!, cameraYaw);
+    this.cameraController.update(this.player!.object.position);
+    this.interactionController!.update(false);
+    this.objective.update(undefined);
+    this.previousTime = undefined;
+    this.canvas.focus();
   };
 
   private readonly resize = (): void => {
@@ -153,6 +175,7 @@ export class Application {
       this.player.update(delta, this.movement);
       const isTouchInteractionPressed = this.interactionPrompt.readInteraction();
       this.interactionController.update(input.isInteractionPressed || isTouchInteractionPressed);
+      this.objective.update(this.player.carriedObject);
       this.cameraController.update(this.player.object.position, this.player.carriedObject?.collider);
       this.interactionPrompt.update(
         this.interactionController.candidate, this.interactionController.canPutDown, this.camera

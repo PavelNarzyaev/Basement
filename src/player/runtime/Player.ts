@@ -170,6 +170,15 @@ export class Player implements IPlayer {
     crate.setPose(this.holdingCenter, this.object.rotation.y);
   }
 
+  restart(): void {
+    if (this.carriedObject) this.stateMachine.stopCarrying();
+    this.accumulator = 0;
+    this.speed = 0;
+    this.traveledDistance = 0;
+    this.reset();
+    this.visual.update(0, 0, false);
+  }
+
   private reset(): void {
     this.collider.start.copy(this.spawn);
     this.collider.start.y += Player.colliderRadius;

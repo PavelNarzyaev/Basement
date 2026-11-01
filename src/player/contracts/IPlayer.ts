@@ -8,6 +8,7 @@ export interface IPlayer {
   canPutDown(): boolean;
   tryPickUp(object: ICarryable): boolean;
   tryPutDown(): boolean;
+  restart(): void;
   /** Movement is a direction in world coordinates, with magnitude capped at one. */
   update(delta: number, movement: Vector3): void;
   dispose(): void;
