@@ -9,7 +9,7 @@ export interface IPlayer {
   tryPickUp(object: ICarryable): boolean;
   tryPutDown(): boolean;
   restart(): void;
-  /** Movement is a direction in world coordinates, with magnitude capped at one. */
-  update(delta: number, movement: Vector3, rotationY?: number): void;
+  /** Movement is a direction in world coordinates, with magnitude capped at one. Yaw is an increment in radians about +Y. */
+  update(delta: number, movement: Vector3, yawDeltaRadians?: number): void;
   dispose(): void;
 }

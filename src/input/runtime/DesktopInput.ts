@@ -3,8 +3,8 @@ import { PlayerInputStateDto } from '../contracts/PlayerInputStateDto';
 
 export class DesktopInput implements IPlayerInput {
   private readonly keys = new Set<string>();
-  private lookX = 0;
-  private lookY = 0;
+  private yawDeltaRadians = 0;
+  private pitchDeltaRadians = 0;
   private isInteractionPressed = false;
   private readonly events = new AbortController();
 
@@ -33,8 +33,8 @@ export class DesktopInput implements IPlayerInput {
         // Work around Chromium's pointer-lock cursor-recentering bug by discarding oversized events.
         if (Math.abs(event.movementX) > window.innerWidth / 3 || Math.abs(event.movementY) > window.innerHeight / 3) return;
 
-        this.lookX += event.movementX;
-        this.lookY += event.movementY;
+        this.yawDeltaRadians -= event.movementX * 0.0025;
+        this.pitchDeltaRadians += event.movementY * 0.0025;
       }
     }, options);
   }
@@ -43,12 +43,12 @@ export class DesktopInput implements IPlayerInput {
     const state = new PlayerInputStateDto(
       Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA')),
       Number(this.keys.has('KeyS')) - Number(this.keys.has('KeyW')),
-      this.lookX * 0.0025,
-      this.lookY * 0.0025,
+      this.yawDeltaRadians,
+      this.pitchDeltaRadians,
       this.isInteractionPressed,
     );
-    this.lookX = 0;
-    this.lookY = 0;
+    this.yawDeltaRadians = 0;
+    this.pitchDeltaRadians = 0;
     this.isInteractionPressed = false;
     return state;
   }
@@ -61,8 +61,8 @@ export class DesktopInput implements IPlayerInput {
 
   private readonly clear = (): void => {
     this.keys.clear();
-    this.lookX = 0;
-    this.lookY = 0;
+    this.yawDeltaRadians = 0;
+    this.pitchDeltaRadians = 0;
     this.isInteractionPressed = false;
   };
 }

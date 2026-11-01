@@ -18,7 +18,7 @@ test('session preserves frame order and restarts ready gameplay without a render
     restart() { events.push('restart'); },
     dispose() { events.push('player disposal'); },
   };
-  const controller = { yaw: 0, rotate() { events.push('look'); }, update() { events.push('camera'); } };
+  const controller = { yaw: 0, addPitchDelta() { events.push('look'); }, update() { events.push('camera'); } };
   const crate = { setPose() { events.push('crate pose'); } };
   const args = [
     { focus() { events.push('focus'); } },
@@ -30,7 +30,7 @@ test('session preserves frame order and restarts ready gameplay without a render
       createInteractionController() { return { update(pressed: boolean) { events.push(`interaction ${pressed}`); } }; },
       createInput() {
         return {
-          read() { events.push('input'); return { movementX: 0, movementZ: 0, lookX: 0, lookY: 0, isInteractionPressed: false }; },
+          read() { events.push('input'); return { movementX: 0, movementZ: 0, yawDeltaRadians: 0, pitchDeltaRadians: 0, isInteractionPressed: false }; },
           dispose() { events.push('input disposal'); },
         };
       },

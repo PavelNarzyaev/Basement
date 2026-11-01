@@ -9,8 +9,8 @@ export class TouchInput implements IPlayerInput {
   private readonly lookPosition = new Vector2();
   private movementPointer: number | undefined;
   private lookPointer: number | undefined;
-  private lookX = 0;
-  private lookY = 0;
+  private yawDeltaRadians = 0;
+  private pitchDeltaRadians = 0;
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly joystick: IJoystickView) {
     const options = { signal: this.events.signal };
@@ -25,9 +25,9 @@ export class TouchInput implements IPlayerInput {
   }
 
   read(): PlayerInputStateDto {
-    const state = new PlayerInputStateDto(this.movement.x, this.movement.y, this.lookX, this.lookY);
-    this.lookX = 0;
-    this.lookY = 0;
+    const state = new PlayerInputStateDto(this.movement.x, this.movement.y, this.yawDeltaRadians, this.pitchDeltaRadians);
+    this.yawDeltaRadians = 0;
+    this.pitchDeltaRadians = 0;
     return state;
   }
 
@@ -56,8 +56,8 @@ export class TouchInput implements IPlayerInput {
       this.updateMovement(this.joystick.getJoystickDisplacement(event.clientX, event.clientY));
     } else if (event.pointerId === this.lookPointer) {
       const sensitivity = Math.PI / Math.min(this.canvas.clientWidth, this.canvas.clientHeight);
-      this.lookX += (event.clientX - this.lookPosition.x) * sensitivity;
-      this.lookY += (event.clientY - this.lookPosition.y) * sensitivity;
+      this.yawDeltaRadians -= (event.clientX - this.lookPosition.x) * sensitivity;
+      this.pitchDeltaRadians += (event.clientY - this.lookPosition.y) * sensitivity;
       this.lookPosition.set(event.clientX, event.clientY);
     }
   };
@@ -84,8 +84,8 @@ export class TouchInput implements IPlayerInput {
       if (pointer !== undefined && this.canvas.hasPointerCapture(pointer)) this.canvas.releasePointerCapture(pointer);
     }
     this.movement.set(0, 0);
-    this.lookX = 0;
-    this.lookY = 0;
+    this.yawDeltaRadians = 0;
+    this.pitchDeltaRadians = 0;
     this.joystick.setJoystickPosition(0, 0);
   };
 }

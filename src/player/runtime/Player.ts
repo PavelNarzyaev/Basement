@@ -19,7 +19,7 @@ export class Player implements IPlayer {
   private readonly stepStart = new Vector3();
   private traveledDistance = 0;
   private speed = 0;
-  private targetRotationY = 0;
+  private targetYawRadians = 0;
   private accumulator = 0;
 
   constructor(
@@ -36,8 +36,8 @@ export class Player implements IPlayer {
     this.reset();
   }
 
-  update(delta: number, movement: Vector3, rotationY = this.object.rotation.y): void {
-    this.targetRotationY += rotationY - this.object.rotation.y;
+  update(delta: number, movement: Vector3, yawDeltaRadians = 0): void {
+    this.targetYawRadians += yawDeltaRadians;
     this.movementVelocity.set(movement.x, 0, movement.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.speed);
     const elapsed = Math.min(delta, 0.1);
     this.accumulator += elapsed;
@@ -120,7 +120,7 @@ export class Player implements IPlayer {
   }
 
   private rotate(): void {
-    const target = this.targetRotationY;
+    const target = this.targetYawRadians;
     const crate = this.carriedObject;
     if (!crate) {
       this.object.rotation.y = target;
@@ -134,7 +134,7 @@ export class Player implements IPlayer {
       this.object.rotation.y = rotation;
       this.syncCarriedObject();
     } else {
-      this.targetRotationY = this.object.rotation.y;
+      this.targetYawRadians = this.object.rotation.y;
     }
   }
 
@@ -158,7 +158,7 @@ export class Player implements IPlayer {
   private reset(): void {
     this.movement.reset();
     this.object.rotation.y = this.spawnRotationY;
-    this.targetRotationY = this.spawnRotationY;
+    this.targetYawRadians = this.spawnRotationY;
     this.movement.collider.getCenter(this.object.position);
     this.syncCarriedObject();
   }
