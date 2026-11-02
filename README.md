@@ -1,5 +1,7 @@
 # Basement
 
+[Open in ChatGPT Sites](https://basement-mobile-test.pavelnarzyaev.chatgpt.site)
+
 ## Requirements
 
 - Node.js 22.12 or later.
