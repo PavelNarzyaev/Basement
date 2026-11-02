@@ -2,7 +2,7 @@ import type { ICarryable } from '../../../carrying/contracts/ICarryable';
 import type { IPlayerState } from '../../contracts/IPlayerState';
 
 export class CarryingState implements IPlayerState {
-  readonly speed = 2.5;
+  readonly movementSpeed = 2.5;
 
   constructor(readonly carriedObject: ICarryable) {}
 }

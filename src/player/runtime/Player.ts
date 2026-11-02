@@ -38,7 +38,7 @@ export class Player implements IPlayer {
 
   update(deltaSeconds: number, worldMovementDirection: Vector3, yawDeltaRadians = 0): void {
     this.targetYawRadians += yawDeltaRadians;
-    this.desiredHorizontalVelocity.set(worldMovementDirection.x, 0, worldMovementDirection.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.speed);
+    this.desiredHorizontalVelocity.set(worldMovementDirection.x, 0, worldMovementDirection.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.movementSpeed);
     const elapsed = Math.min(deltaSeconds, 0.1);
     this.accumulator += elapsed;
     this.traveledDistance = 0;

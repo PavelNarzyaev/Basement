@@ -1,11 +1,11 @@
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
 import type { IPlayerState } from '../contracts/IPlayerState';
 import { CarryingState } from './states/CarryingState';
-import { WalkingState } from './states/WalkingState';
+import { UnladenState } from './states/UnladenState';
 
 export class PlayerStateMachine {
-  private readonly walkingState = new WalkingState();
-  private currentState: IPlayerState = this.walkingState;
+  private readonly unladenState = new UnladenState();
+  private currentState: IPlayerState = this.unladenState;
 
   get state(): IPlayerState {
     return this.currentState;
@@ -18,6 +18,6 @@ export class PlayerStateMachine {
 
   stopCarrying(): void {
     if (!this.currentState.carriedObject) throw new Error('Player is not carrying an object.');
-    this.currentState = this.walkingState;
+    this.currentState = this.unladenState;
   }
 }
