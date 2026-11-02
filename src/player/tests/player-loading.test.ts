@@ -59,7 +59,7 @@ for (const outcome of ['cancel', 'download-error', 'invalid-clips', 'player-erro
       };
       await assert.rejects(loading, expectedErrors[outcome]);
     }
-    assert.equal(progressCount, 0);
+    assert.equal(progressCount, outcome === 'success' ? 1 : 0);
     const expectedDisposals = outcome === 'download-error' ? 0 : 1;
     assert.equal(geometryDisposals, expectedDisposals);
     assert.equal(skeletonDisposal.mock.callCount(), expectedDisposals);

@@ -58,12 +58,13 @@ for (const asset of ['basement', 'crate']) {
     let progressCount = 0;
     const loading = fixture.scene.load(() => progressCount++);
     await new Promise(resolve => setImmediate(resolve));
+    const previousProgressCount = progressCount;
     fixture.scene.dispose();
     progress({ lengthComputable: true, loaded: 1, total: 1 } as ProgressEvent);
     const lateModel = asset === 'crate' ? fixture.crate : fixture.model;
     finish({ scene: lateModel } as GLTF);
     await assert.rejects(loading, { name: 'AbortError' });
-    assert.equal(progressCount, 0);
+    assert.equal(progressCount, previousProgressCount);
     assert.equal(fixture.scene.scene.children.length, 0);
     assert.ok(fixture.disposal.mock.calls.some(call => call.arguments[0] === lateModel));
     fixture.scene.dispose();

@@ -36,7 +36,7 @@ export class BasementScene implements IGameScene {
     this.scene.fog = new FogExp2(new Color(dustColor).multiplyScalar(dustBrightness), dustFogDensity);
   }
 
-  async load(onProgress: (percentage: number) => void): Promise<SceneLoadResultDto> {
+  async load(onProgress: (percentage: number | undefined) => void): Promise<SceneLoadResultDto> {
     try {
       if (this.isDisposed) throw new DOMException('Scene loading was cancelled.', 'AbortError');
       return await this.loadModels((percentage) => {
@@ -48,20 +48,19 @@ export class BasementScene implements IGameScene {
     }
   }
 
-  private async loadModels(onProgress: (percentage: number) => void): Promise<SceneLoadResultDto> {
+  private async loadModels(onProgress: (percentage: number | undefined) => void): Promise<SceneLoadResultDto> {
     const model = await new GLTFLoader().loadAsync(`${this.baseUrl}models/basement/basement.glb`, (event) => {
-      if (event.lengthComputable) {
-        onProgress((event.loaded / event.total) * 80);
-      }
+      onProgress(event.lengthComputable ? event.loaded / event.total * 98 : undefined);
     });
     if (this.isDisposed) {
       this.objectDisposer.dispose(model.scene);
       throw new DOMException('Scene loading was cancelled.', 'AbortError');
     }
+    onProgress(98);
     this.scene.add(model.scene);
     const layout = new SceneLayout(model.scene);
     const crateModel = await new GLTFLoader().loadAsync(`${this.baseUrl}models/crate/Crate.glb`, (event) => {
-      if (event.lengthComputable) onProgress(80 + event.loaded / event.total * 20);
+      onProgress(event.lengthComputable ? 98 + event.loaded / event.total * 2 : undefined);
     });
     if (this.isDisposed) {
       this.objectDisposer.dispose(crateModel.scene);

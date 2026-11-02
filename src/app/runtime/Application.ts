@@ -73,8 +73,9 @@ export class Application {
     let world: ICollisionWorld | undefined;
     let player: IPlayer | undefined;
     try {
-      const sceneResult = await this.scene.load((percentage) => this.updateLoadingProgress(percentage * 0.9));
+      const sceneResult = await this.scene.load((percentage) => this.updateLoadingProgress(percentage === undefined ? undefined : percentage * 0.965));
       if (this.isDisposed) return;
+      this.updateLoadingProgress(96.5);
       this.camera.near = 0.05;
       this.camera.far = 150;
       this.camera.updateProjectionMatrix();
@@ -86,12 +87,13 @@ export class Application {
       world = this.gameplayFactory.createCollisionWorld(sceneResult.staticModel, crates.map((crate) => crate.collider));
       player = await this.gameplayFactory.createPlayer(
         world, sceneResult.playerSpawn,
-        (percentage) => this.updateLoadingProgress(90 + percentage * 0.1),
+        (percentage) => this.updateLoadingProgress(percentage === undefined ? undefined : 96.5 + percentage * 0.035),
         this.loadingController.signal,
       );
       if (this.isDisposed) {
         return;
       }
+      this.updateLoadingProgress(100);
       this.session = this.gameplayFactory.createSession(player, world, crates, this.camera, sceneResult);
       player = undefined;
       world = undefined;
@@ -113,9 +115,11 @@ export class Application {
     }
   }
 
-  private readonly updateLoadingProgress = (percentage: number): void => {
+  private readonly updateLoadingProgress = (percentage: number | undefined): void => {
     if (this.isDisposed) return;
-    this.status.textContent = `Загрузка: ${Math.floor(percentage)}%`;
+    this.status.textContent = percentage === undefined ? 'Загрузка…'
+      : percentage >= 100 ? 'Почти готово…'
+        : `Загрузка: ${Math.floor(percentage)}%`;
   };
 
   private readonly startGameplay = (session: IGameplaySession, settings: StartupSettingsDto): void => {

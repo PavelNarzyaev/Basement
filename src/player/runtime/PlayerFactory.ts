@@ -15,17 +15,19 @@ export class PlayerFactory {
 
   async create(
     world: ICollisionWorld, spawn: PlayerSpawnDto, carryPlacement: ICarryPlacementSolver,
-    onProgress: (percentage: number) => void, signal: AbortSignal,
+    onProgress: (percentage: number | undefined) => void, signal: AbortSignal,
   ): Promise<IPlayer> {
     signal.throwIfAborted();
     const model = await new GLTFLoader().loadAsync(`${this.baseUrl}models/player/player.glb`, (event) => {
-      if (!signal.aborted && event.lengthComputable) onProgress(event.loaded / event.total * 100);
+      if (!signal.aborted) onProgress(event.lengthComputable ? event.loaded / event.total * 100 : undefined);
     });
     let visual: PlayerVisual | undefined;
     try {
       signal.throwIfAborted();
       visual = new PlayerVisual(model.scene, model.animations, this.objectDisposer);
-      return new Player(world, spawn, carryPlacement, visual);
+      const player = new Player(world, spawn, carryPlacement, visual);
+      onProgress(100);
+      return player;
     } catch (error) {
       if (visual) visual.dispose();
       else this.objectDisposer.dispose(model.scene);

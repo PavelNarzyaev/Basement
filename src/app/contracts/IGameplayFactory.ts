@@ -17,7 +17,7 @@ export interface IGameplayFactory {
   createCollisionWorld(model: Object3D, boxes: readonly YawBoxDto[]): ICollisionWorld;
   createPlayer(
     world: ICollisionWorld, spawn: PlayerSpawnDto,
-    onProgress: (percentage: number) => void, signal: AbortSignal,
+    onProgress: (percentage: number | undefined) => void, signal: AbortSignal,
   ): Promise<IPlayer>;
   createInteractionController(
     player: IPlayer, crates: readonly ICarryable[], world: ICollisionWorld,

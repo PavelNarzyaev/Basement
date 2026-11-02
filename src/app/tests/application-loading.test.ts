@@ -33,12 +33,12 @@ function createFixture(context: TestContext, stage: 'scene' | 'player' | 'audio'
       else Reflect.deleteProperty(globalThis, name);
     });
   }
-  const progressCallbacks: ((percentage: number) => void)[] = [];
+  const progressCallbacks: ((percentage: number | undefined) => void)[] = [];
   const player = { object: new Object3D(), dispose() { recordDisposal('player'); } };
   const world = { dispose() { recordDisposal('world'); } };
   const scene = {
     scene: new Scene(),
-    async load(onProgress: (percentage: number) => void) {
+    async load(onProgress: (percentage: number | undefined) => void) {
       progressCallbacks.push(onProgress);
       if (stage === 'scene') await gate;
       return new SceneLoadResultDto(new Object3D(), new PlayerSpawnDto(new Vector3(), 0), [], new YawBoxDto(new Vector3(), new Vector3(1, 1, 1), 0));
@@ -56,7 +56,7 @@ function createFixture(context: TestContext, stage: 'scene' | 'player' | 'audio'
       return new GameplaySession({} as never, scene.scene, camera, {} as never, {} as never, factory as never, {} as never, audio as never, player, world, crates, sceneResult);
     },
     createCollisionWorld() { return world; },
-    async createPlayer(_world: unknown, _spawn: unknown, onProgress: (percentage: number) => void, loadingSignal: AbortSignal) {
+    async createPlayer(_world: unknown, _spawn: unknown, onProgress: (percentage: number | undefined) => void, loadingSignal: AbortSignal) {
       signal = loadingSignal;
       progressCallbacks.push(onProgress);
       if (stage === 'player') await gate;
@@ -135,5 +135,22 @@ for (const stage of ['scene', 'player', 'audio'] as const) {
     fixture.application.dispose();
     assert.equal(fixture.status.isRemoved, true);
     for (const count of fixture.disposals.values()) assert.equal(count, 1);
+  });
+}
+
+for (const hasKnownSize of [false, true]) {
+  test(`loading with known size=${hasKnownSize} switches to final preparation while audio is pending`, async (context) => {
+    const fixture = createFixture(context, 'audio');
+    await new Promise(resolve => setImmediate(resolve));
+    const reportPlayerProgress = fixture.progressCallbacks[1]!;
+    reportPlayerProgress(hasKnownSize ? 50 : undefined);
+    assert.equal(fixture.status.textContent.includes('%'), hasKnownSize);
+    reportPlayerProgress(100);
+    assert.equal(fixture.status.textContent, 'Почти готово…');
+    assert.equal(fixture.status.hidden, false);
+    fixture.finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(fixture.status.hidden, true);
+    assert.equal(fixture.hasOpenedDialog, true);
   });
 }
