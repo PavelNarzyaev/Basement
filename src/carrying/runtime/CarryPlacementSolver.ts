@@ -1,8 +1,6 @@
 import { Ray, Vector3 } from 'three';
 import { playerSettings } from '../../player/contracts/playerSettings';
-import type { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
-import type { IYawBoxCollision } from '../../collision/contracts/IYawBoxCollision';
 import { YawBoxDto } from '../../collision/contracts/YawBoxDto';
 import type { ICarryable } from '../contracts/ICarryable';
 import type { ICarryPlacementSolver } from '../contracts/ICarryPlacementSolver';
@@ -20,7 +18,7 @@ export class CarryPlacementSolver implements ICarryPlacementSolver {
     [carryPlacementSettings.supportSampleExtent, carryPlacementSettings.supportSampleExtent],
   ] as const;
 
-  constructor(private readonly world: ICollisionWorld, private readonly boxCollision: IYawBoxCollision) {}
+  constructor(private readonly world: ICollisionWorld) {}
 
   getHoldingCenter(playerCenter: Vector3, rotationY: number, crate: ICarryable, target: Vector3): Vector3 {
     return target.set(0, carryPlacementSettings.holdingHeight, playerSettings.colliderRadius + crate.collider.halfSize.z + carryPlacementSettings.holdingGap)
@@ -48,7 +46,7 @@ export class CarryPlacementSolver implements ICarryPlacementSolver {
     return true;
   }
 
-  findSupportedPlacement(crate: ICarryable, playerCollider: Capsule): Vector3 | undefined {
+  findSupportedPlacement(crate: ICarryable): Vector3 | undefined {
     const box = crate.collider;
     const rayHeight = box.center.y - box.halfSize.y + carryPlacementSettings.supportRayStartOffset;
     let minimumHeight = Infinity;
@@ -66,10 +64,6 @@ export class CarryPlacementSolver implements ICarryPlacementSolver {
     if (maximumHeight - minimumHeight > carryPlacementSettings.maximumSupportHeightDifference) return undefined;
     const center = box.center.clone();
     center.y = maximumHeight + box.halfSize.y + carryPlacementSettings.placementGap;
-    this.trialBox.center.copy(center);
-    this.trialBox.halfSize.copy(box.halfSize);
-    this.trialBox.rotationY = box.rotationY;
-    if (this.boxCollision.intersectCapsule(playerCollider, this.trialBox)) return undefined;
     return this.canOccupyPose(crate, center, box.rotationY) ? center : undefined;
   }
 }

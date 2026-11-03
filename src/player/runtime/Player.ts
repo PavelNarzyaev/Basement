@@ -72,7 +72,7 @@ export class Player implements IPlayer {
 
   canPutDown(): boolean {
     const crate = this.carriedObject;
-    return Boolean(crate && this.carryPlacement.findSupportedPlacement(crate, this.movement.collider));
+    return Boolean(crate && this.carryPlacement.findSupportedPlacement(crate));
   }
 
   tryPickUp(crate: ICarryable): boolean {
@@ -85,7 +85,7 @@ export class Player implements IPlayer {
   tryPutDown(): boolean {
     const crate = this.carriedObject;
     if (!crate) return false;
-    const center = this.carryPlacement.findSupportedPlacement(crate, this.movement.collider);
+    const center = this.carryPlacement.findSupportedPlacement(crate);
     if (!center) return false;
     crate.setPose(center, crate.collider.rotationY);
     this.stateMachine.stopCarrying();

@@ -4,7 +4,6 @@ import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Object3D, PointLight, V
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { CarryingFixture } from '../../carrying/tests/CarryingFixture.ts';
 import { CarryPlacementSolver } from '../../carrying/runtime/CarryPlacementSolver.ts';
-import { YawBoxCollision } from '../../collision/runtime/YawBoxCollision.ts';
 import { Object3DResourceDisposer } from '../../disposer/runtime/Object3DResourceDisposer.ts';
 import { Player } from '../../player/runtime/Player.ts';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto.ts';
@@ -16,7 +15,7 @@ test('an existing player uses tuned speeds immediately in both states', () => {
   const fixture = new CarryingFixture();
   const settings = new LiveTuningSettings(new TuningSettingsDto(4, 2.5, '#ffdfaa'));
   const player = new Player(fixture.world, new PlayerSpawnDto(new Vector3(0, 0.001, 0), 0),
-    new CarryPlacementSolver(fixture.world, new YawBoxCollision()),
+    new CarryPlacementSolver(fixture.world),
     { object: new Group(), update() {}, dispose() {} }, settings);
   assert.equal(player.tryPickUp(fixture.crate), true);
   settings.applySettings(new TuningSettingsDto(6, 3, '#ffdfaa'));

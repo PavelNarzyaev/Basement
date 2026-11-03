@@ -8,7 +8,6 @@ import { ThirdPersonCameraController } from './camera/runtime/ThirdPersonCameraC
 import { CarryPlacementSolver } from './carrying/runtime/CarryPlacementSolver';
 import { CrateInteractionController } from './carrying/runtime/CrateInteractionController';
 import { MovableCrate } from './carrying/runtime/MovableCrate';
-import { YawBoxCollision } from './collision/runtime/YawBoxCollision';
 import { CollisionWorld } from './collision/runtime/CollisionWorld';
 import { CanvasOverlayFactory } from './canvas_overlay/runtime/CanvasOverlayFactory';
 import { VirtualJoystick } from './input/runtime/VirtualJoystick';
@@ -53,7 +52,7 @@ const gameplayFactory: IGameplayFactory = {
     return new CollisionWorld(model, boxes);
   },
   createPlayer(world, spawn, onProgress, signal) {
-    const carryPlacement = new CarryPlacementSolver(world, new YawBoxCollision());
+    const carryPlacement = new CarryPlacementSolver(world);
     return playerFactory.create(world, spawn, carryPlacement, onProgress, signal);
   },
   createInteractionController(player, crates, world) {

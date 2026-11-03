@@ -3,7 +3,6 @@ import { Group, Vector3 } from 'three';
 import type { Object3D } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
-import { YawBoxCollision } from '../../collision/runtime/YawBoxCollision';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import { Player } from '../../player/runtime/Player';
 import { MovableCrate } from '../runtime/MovableCrate';
@@ -21,7 +20,7 @@ export class BasementGeometryFixture {
     this.scene.add(crateModel);
     this.crate = new MovableCrate(crateModel);
     this.world = new CollisionWorld(model, [this.crate.collider]);
-    const carryPlacement = new CarryPlacementSolver(this.world, new YawBoxCollision());
+    const carryPlacement = new CarryPlacementSolver(this.world);
     this.player = new Player(
       this.world, new PlayerSpawnDto(new Vector3(2, 0.154292, -5.5), 0), carryPlacement,
       { object: new Group(), update() {}, dispose() {} },

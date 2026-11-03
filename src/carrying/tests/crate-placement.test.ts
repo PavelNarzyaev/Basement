@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { BoxGeometry, Mesh, MeshBasicMaterial, Vector3 } from 'three';
-import { YawBoxCollision } from '../../collision/runtime/YawBoxCollision';
 import { CarryPlacementSolver } from '../runtime/CarryPlacementSolver';
 import { CarryingFixture } from './CarryingFixture';
 
@@ -21,7 +20,7 @@ test('rejects placement when only the middle of the footprint has support', () =
   pedestal.position.set(0, 0.3, 0.76);
   const fixture = new CarryingFixture([pedestal]);
   fixture.crate.setPose(new Vector3(0, 1, 0.76), 0);
-  const placement = new CarryPlacementSolver(fixture.world, new YawBoxCollision());
+  const placement = new CarryPlacementSolver(fixture.world);
   assert.equal(placement.canSweepToPose(fixture.crate, new Vector3(0, 0.855, 0.76), 0), true);
   assert.equal(fixture.player.tryPickUp(fixture.crate), true);
   assert.equal(fixture.player.tryPutDown(), false);
@@ -43,7 +42,7 @@ test('allows placement across an obstacle when the final position has support an
   barrier.position.set(0.15, 0.65, 0.76);
   const fixture = new CarryingFixture([barrier]);
   assert.equal(fixture.player.tryPickUp(fixture.crate), true);
-  const placement = new CarryPlacementSolver(fixture.world, new YawBoxCollision());
+  const placement = new CarryPlacementSolver(fixture.world);
   const target = new Vector3(0, 0.255, 0.76);
   assert.equal(placement.canSweepToPose(fixture.crate, target, 0), false);
   assert.equal(fixture.player.canPutDown(), true);
