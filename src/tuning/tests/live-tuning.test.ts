@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Object3D, PointLight, Vector3 } from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { CarryingFixture } from '../../carrying/tests/CarryingFixture.ts';
+import { HoldingPoseCalculator } from '../../carrying/runtime/HoldingPoseCalculator.ts';
+import { CarryCollisionValidator } from '../../carrying/runtime/CarryCollisionValidator.ts';
 import { CarryPlacementSolver } from '../../carrying/runtime/CarryPlacementSolver.ts';
 import { Object3DResourceDisposer } from '../../disposer/runtime/Object3DResourceDisposer.ts';
 import { Player } from '../../player/runtime/Player.ts';
@@ -14,8 +16,9 @@ import { TuningSettingsDto } from '../contracts/TuningSettingsDto.ts';
 test('an existing player uses tuned speeds immediately in both states', () => {
   const fixture = new CarryingFixture();
   const settings = new LiveTuningSettings(new TuningSettingsDto(4, 2.5, '#ffdfaa'));
+  const carryCollision = new CarryCollisionValidator(fixture.world);
   const player = new Player(fixture.world, new PlayerSpawnDto(new Vector3(0, 0.001, 0), 0),
-    new CarryPlacementSolver(fixture.world),
+    new HoldingPoseCalculator(), carryCollision, new CarryPlacementSolver(fixture.world, carryCollision),
     { object: new Group(), update() {}, dispose() {} }, settings);
   assert.equal(player.tryPickUp(fixture.crate), true);
   settings.applySettings(new TuningSettingsDto(6, 3, '#ffdfaa'));

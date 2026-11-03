@@ -1,4 +1,6 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import type { IHoldingPoseCalculator } from '../../carrying/contracts/IHoldingPoseCalculator';
+import type { ICarryCollisionValidator } from '../../carrying/contracts/ICarryCollisionValidator';
 import type { ICarryPlacementSolver } from '../../carrying/contracts/ICarryPlacementSolver';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IObject3DResourceDisposer } from '../../disposer/contracts/IObject3DResourceDisposer';
@@ -17,7 +19,8 @@ export class PlayerFactory {
   ) {}
 
   async create(
-    world: ICollisionWorld, spawn: PlayerSpawnDto, carryPlacement: ICarryPlacementSolver,
+    world: ICollisionWorld, spawn: PlayerSpawnDto,
+    holdingPose: IHoldingPoseCalculator, carryCollision: ICarryCollisionValidator, carryPlacement: ICarryPlacementSolver,
     onProgress: (percentage: number | undefined) => void, signal: AbortSignal,
   ): Promise<IPlayer> {
     signal.throwIfAborted();
@@ -28,7 +31,7 @@ export class PlayerFactory {
     try {
       signal.throwIfAborted();
       visual = new PlayerVisual(model.scene, model.animations, this.objectDisposer);
-      const player = new Player(world, spawn, carryPlacement, visual, this.settings);
+      const player = new Player(world, spawn, holdingPose, carryCollision, carryPlacement, visual, this.settings);
       onProgress(100);
       return player;
     } catch (error) {

@@ -1,5 +1,7 @@
 import { Group, MathUtils, Vector3 } from 'three';
 import type { ICarryable } from '../../carrying/contracts/ICarryable';
+import type { IHoldingPoseCalculator } from '../../carrying/contracts/IHoldingPoseCalculator';
+import type { ICarryCollisionValidator } from '../../carrying/contracts/ICarryCollisionValidator';
 import type { ICarryPlacementSolver } from '../../carrying/contracts/ICarryPlacementSolver';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IPlayer } from '../contracts/IPlayer';
@@ -28,6 +30,8 @@ export class Player implements IPlayer {
   constructor(
     world: ICollisionWorld,
     spawn: PlayerSpawnDto,
+    private readonly holdingPose: IHoldingPoseCalculator,
+    private readonly carryCollision: ICarryCollisionValidator,
     private readonly carryPlacement: ICarryPlacementSolver,
     private readonly visual: IPlayerVisual,
     settings: ITuningSettings = tuningDefaults,
@@ -66,8 +70,8 @@ export class Player implements IPlayer {
   canPickUp(crate: ICarryable): boolean {
     if (this.carriedObject) return false;
     this.movement.collider.getCenter(this.playerCenter);
-    this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
-    return this.carryPlacement.canOccupyPose(crate, this.holdingCenter, this.object.rotation.y);
+    this.holdingPose.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
+    return this.carryCollision.canOccupyPose(crate, this.holdingCenter, this.object.rotation.y);
   }
 
   canPutDown(): boolean {
@@ -106,8 +110,8 @@ export class Player implements IPlayer {
       const crate = this.carriedObject;
       if (crate) {
         this.movement.collider.getCenter(this.playerCenter);
-        this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
-        if (this.carryPlacement.canSweepToPose(crate, this.holdingCenter, this.object.rotation.y)) {
+        this.holdingPose.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
+        if (this.carryCollision.canSweepToPose(crate, this.holdingCenter, this.object.rotation.y)) {
           this.syncCarriedObject();
         } else {
           this.movement.rollbackAxis(axis);
@@ -134,8 +138,8 @@ export class Player implements IPlayer {
     const angle = Math.atan2(Math.sin(target - this.object.rotation.y), Math.cos(target - this.object.rotation.y));
     const rotation = this.object.rotation.y + MathUtils.clamp(angle, -playerSettings.carryingTurnSpeedRadians * playerSettings.fixedStep, playerSettings.carryingTurnSpeedRadians * playerSettings.fixedStep);
     this.movement.collider.getCenter(this.playerCenter);
-    this.carryPlacement.getHoldingCenter(this.playerCenter, rotation, crate, this.holdingCenter);
-    if (this.carryPlacement.canSweepToPose(crate, this.holdingCenter, rotation)) {
+    this.holdingPose.getHoldingCenter(this.playerCenter, rotation, crate, this.holdingCenter);
+    if (this.carryCollision.canSweepToPose(crate, this.holdingCenter, rotation)) {
       this.object.rotation.y = rotation;
       this.syncCarriedObject();
     } else {
@@ -147,7 +151,7 @@ export class Player implements IPlayer {
     const crate = this.carriedObject;
     if (!crate) return;
     this.movement.collider.getCenter(this.playerCenter);
-    this.carryPlacement.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
+    this.holdingPose.getHoldingCenter(this.playerCenter, this.object.rotation.y, crate, this.holdingCenter);
     crate.setPose(this.holdingCenter, this.object.rotation.y);
   }
 

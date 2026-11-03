@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { BoxGeometry, Mesh, MeshBasicMaterial, Vector3 } from 'three';
-import { CarryPlacementSolver } from '../runtime/CarryPlacementSolver';
+import { CarryCollisionValidator } from '../runtime/CarryCollisionValidator';
 import { CarryingFixture } from './CarryingFixture';
 
 test('places a crate on an elevated platform like a trolley deck', () => {
@@ -20,8 +20,8 @@ test('rejects placement when only the middle of the footprint has support', () =
   pedestal.position.set(0, 0.3, 0.76);
   const fixture = new CarryingFixture([pedestal]);
   fixture.crate.setPose(new Vector3(0, 1, 0.76), 0);
-  const placement = new CarryPlacementSolver(fixture.world);
-  assert.equal(placement.canSweepToPose(fixture.crate, new Vector3(0, 0.855, 0.76), 0), true);
+  const carryCollision = new CarryCollisionValidator(fixture.world);
+  assert.equal(carryCollision.canSweepToPose(fixture.crate, new Vector3(0, 0.855, 0.76), 0), true);
   assert.equal(fixture.player.tryPickUp(fixture.crate), true);
   assert.equal(fixture.player.tryPutDown(), false);
   assert.equal(fixture.player.carriedObject, fixture.crate);
@@ -42,9 +42,9 @@ test('allows placement across an obstacle when the final position has support an
   barrier.position.set(0.15, 0.65, 0.76);
   const fixture = new CarryingFixture([barrier]);
   assert.equal(fixture.player.tryPickUp(fixture.crate), true);
-  const placement = new CarryPlacementSolver(fixture.world);
+  const carryCollision = new CarryCollisionValidator(fixture.world);
   const target = new Vector3(0, 0.255, 0.76);
-  assert.equal(placement.canSweepToPose(fixture.crate, target, 0), false);
+  assert.equal(carryCollision.canSweepToPose(fixture.crate, target, 0), false);
   assert.equal(fixture.player.canPutDown(), true);
   assert.equal(fixture.player.tryPutDown(), true);
   assert.equal(fixture.player.carriedObject, undefined);

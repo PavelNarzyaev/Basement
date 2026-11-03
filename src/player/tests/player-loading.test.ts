@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AnimationClip, Box3, BoxGeometry, Group, MeshStandardMaterial, Skeleton, SkinnedMesh, Vector3 } from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import type { IHoldingPoseCalculator } from '../../carrying/contracts/IHoldingPoseCalculator';
+import type { ICarryCollisionValidator } from '../../carrying/contracts/ICarryCollisionValidator';
 import type { ICarryPlacementSolver } from '../../carrying/contracts/ICarryPlacementSolver';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import { Object3DResourceDisposer } from '../../disposer/runtime/Object3DResourceDisposer';
@@ -39,7 +41,8 @@ for (const outcome of ['cancel', 'download-error', 'invalid-clips', 'player-erro
     } as ICollisionWorld;
     let progressCount = 0;
     const factory = new PlayerFactory(new Object3DResourceDisposer(), '/');
-    const loading = factory.create(world, new PlayerSpawnDto(new Vector3(), 0), {} as ICarryPlacementSolver,
+    const loading = factory.create(world, new PlayerSpawnDto(new Vector3(), 0),
+      {} as IHoldingPoseCalculator, {} as ICarryCollisionValidator, {} as ICarryPlacementSolver,
       () => progressCount++, controller.signal);
     if (outcome === 'cancel') {
       controller.abort();

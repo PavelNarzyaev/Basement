@@ -4,6 +4,8 @@ import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import { Player } from '../../player/runtime/Player';
 import type { IPlayerVisual } from '../../player/contracts/IPlayerVisual';
 import { MovableCrate } from '../runtime/MovableCrate';
+import { HoldingPoseCalculator } from '../runtime/HoldingPoseCalculator';
+import { CarryCollisionValidator } from '../runtime/CarryCollisionValidator';
 import { CarryPlacementSolver } from '../runtime/CarryPlacementSolver';
 import { TuningSettingsDto } from '../../tuning/contracts/TuningSettingsDto';
 
@@ -26,8 +28,10 @@ export class CarryingFixture {
     this.scene.add(crateModel);
     this.crate = new MovableCrate(crateModel);
     this.world = new CollisionWorld(this.environment, [this.crate.collider]);
-    const carryPlacement = new CarryPlacementSolver(this.world);
-    this.player = new Player(this.world, new PlayerSpawnDto(new Vector3(0, 0.001, 0), 0), carryPlacement, visual,
+    const holdingPose = new HoldingPoseCalculator();
+    const carryCollision = new CarryCollisionValidator(this.world);
+    const carryPlacement = new CarryPlacementSolver(this.world, carryCollision);
+    this.player = new Player(this.world, new PlayerSpawnDto(new Vector3(0, 0.001, 0), 0), holdingPose, carryCollision, carryPlacement, visual,
       new TuningSettingsDto(4, 2.5, '#ffdfaa'));
     this.scene.add(this.player.object);
   }

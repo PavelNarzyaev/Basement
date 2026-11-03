@@ -5,6 +5,8 @@ import { CeilingDebris } from './ceiling_debris/runtime/CeilingDebris';
 import { Application } from './app/runtime/Application';
 import type { IGameplayFactory } from './app/contracts/IGameplayFactory';
 import { ThirdPersonCameraController } from './camera/runtime/ThirdPersonCameraController';
+import { HoldingPoseCalculator } from './carrying/runtime/HoldingPoseCalculator';
+import { CarryCollisionValidator } from './carrying/runtime/CarryCollisionValidator';
 import { CarryPlacementSolver } from './carrying/runtime/CarryPlacementSolver';
 import { CrateInteractionController } from './carrying/runtime/CrateInteractionController';
 import { MovableCrate } from './carrying/runtime/MovableCrate';
@@ -52,8 +54,10 @@ const gameplayFactory: IGameplayFactory = {
     return new CollisionWorld(model, boxes);
   },
   createPlayer(world, spawn, onProgress, signal) {
-    const carryPlacement = new CarryPlacementSolver(world);
-    return playerFactory.create(world, spawn, carryPlacement, onProgress, signal);
+    const holdingPose = new HoldingPoseCalculator();
+    const carryCollision = new CarryCollisionValidator(world);
+    const carryPlacement = new CarryPlacementSolver(world, carryCollision);
+    return playerFactory.create(world, spawn, holdingPose, carryCollision, carryPlacement, onProgress, signal);
   },
   createInteractionController(player, crates, world) {
     return new CrateInteractionController(player, crates, world);

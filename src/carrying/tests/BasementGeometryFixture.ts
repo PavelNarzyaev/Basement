@@ -6,6 +6,8 @@ import { CollisionWorld } from '../../collision/runtime/CollisionWorld';
 import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import { Player } from '../../player/runtime/Player';
 import { MovableCrate } from '../runtime/MovableCrate';
+import { HoldingPoseCalculator } from '../runtime/HoldingPoseCalculator';
+import { CarryCollisionValidator } from '../runtime/CarryCollisionValidator';
 import { CarryPlacementSolver } from '../runtime/CarryPlacementSolver';
 
 export class BasementGeometryFixture {
@@ -20,9 +22,11 @@ export class BasementGeometryFixture {
     this.scene.add(crateModel);
     this.crate = new MovableCrate(crateModel);
     this.world = new CollisionWorld(model, [this.crate.collider]);
-    const carryPlacement = new CarryPlacementSolver(this.world);
+    const holdingPose = new HoldingPoseCalculator();
+    const carryCollision = new CarryCollisionValidator(this.world);
+    const carryPlacement = new CarryPlacementSolver(this.world, carryCollision);
     this.player = new Player(
-      this.world, new PlayerSpawnDto(new Vector3(2, 0.154292, -5.5), 0), carryPlacement,
+      this.world, new PlayerSpawnDto(new Vector3(2, 0.154292, -5.5), 0), holdingPose, carryCollision, carryPlacement,
       { object: new Group(), update() {}, dispose() {} },
     );
     this.scene.add(this.player.object);
