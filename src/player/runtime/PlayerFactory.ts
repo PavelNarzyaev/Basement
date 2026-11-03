@@ -6,11 +6,14 @@ import type { IPlayer } from '../contracts/IPlayer';
 import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
 import { Player } from './Player';
 import { PlayerVisual } from './PlayerVisual';
+import type { ITuningSettings } from '../../tuning/contracts/ITuningSettings';
+import { tuningDefaults } from '../../tuning/contracts/tuningDefaults';
 
 export class PlayerFactory {
   constructor(
     private readonly objectDisposer: IObject3DResourceDisposer,
     private readonly baseUrl: string,
+    private readonly settings: ITuningSettings = tuningDefaults,
   ) {}
 
   async create(
@@ -25,7 +28,7 @@ export class PlayerFactory {
     try {
       signal.throwIfAborted();
       visual = new PlayerVisual(model.scene, model.animations, this.objectDisposer);
-      const player = new Player(world, spawn, carryPlacement, visual);
+      const player = new Player(world, spawn, carryPlacement, visual, this.settings);
       onProgress(100);
       return player;
     } catch (error) {

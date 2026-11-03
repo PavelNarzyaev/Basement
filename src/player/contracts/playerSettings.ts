@@ -3,8 +3,8 @@ import type { IPlayerSettings } from './IPlayerSettings';
 export const playerSettings: IPlayerSettings = {
   colliderHeight: 1.8,
   colliderRadius: 0.43,
-  unladenMovementSpeed: 4,
-  carryingMovementSpeed: 2.5,
+  unladenAnimationSpeed: 4,
+  carryingAnimationSpeed: 2.5,
   maximumFrameDeltaSeconds: 0.1,
   carryingTurnSpeedRadians: 6,
   fallResetDepth: 3,

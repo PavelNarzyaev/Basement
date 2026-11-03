@@ -1,8 +1,8 @@
 export interface IPlayerSettings {
   readonly colliderHeight: number;
   readonly colliderRadius: number;
-  readonly unladenMovementSpeed: number;
-  readonly carryingMovementSpeed: number;
+  readonly unladenAnimationSpeed: number;
+  readonly carryingAnimationSpeed: number;
   readonly maximumFrameDeltaSeconds: number;
   readonly carryingTurnSpeedRadians: number;
   readonly fallResetDepth: number;

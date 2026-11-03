@@ -8,13 +8,15 @@ import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
 import { PlayerMovement } from './PlayerMovement';
 import { PlayerStateMachine } from './PlayerStateMachine';
 import { playerSettings } from '../contracts/playerSettings';
+import type { ITuningSettings } from '../../tuning/contracts/ITuningSettings';
+import { tuningDefaults } from '../../tuning/contracts/tuningDefaults';
 
 export class Player implements IPlayer {
   readonly object = new Group();
   private readonly movement: PlayerMovement;
   private readonly spawnRotationY: number;
   private readonly desiredHorizontalVelocity = new Vector3();
-  private readonly stateMachine = new PlayerStateMachine();
+  private readonly stateMachine: PlayerStateMachine;
   private readonly holdingCenter = new Vector3();
   private readonly playerCenter = new Vector3();
   private readonly stepStart = new Vector3();
@@ -28,7 +30,9 @@ export class Player implements IPlayer {
     spawn: PlayerSpawnDto,
     private readonly carryPlacement: ICarryPlacementSolver,
     private readonly visual: IPlayerVisual,
+    settings: ITuningSettings = tuningDefaults,
   ) {
+    this.stateMachine = new PlayerStateMachine(settings);
     this.movement = new PlayerMovement(world, spawn.position);
     this.spawnRotationY = spawn.rotationY;
     this.object.name = 'PlayerController';

@@ -23,6 +23,8 @@ import { BasementScene } from './scenes/runtime/BasementScene';
 import { PlayerFactory } from './player/runtime/PlayerFactory';
 import './style.css';
 import { CrateObjective } from './objective/runtime/CrateObjective';
+import { LiveTuningSettings } from './tuning/runtime/LiveTuningSettings';
+import { tuningDefaults } from './tuning/contracts/tuningDefaults';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 
@@ -31,10 +33,11 @@ if (!canvas) {
 }
 
 const objectDisposer = new Object3DResourceDisposer();
-const playerFactory = new PlayerFactory(objectDisposer, import.meta.env.BASE_URL);
+const tuningSettings = new LiveTuningSettings(tuningDefaults);
+const playerFactory = new PlayerFactory(objectDisposer, import.meta.env.BASE_URL, tuningSettings);
 const dust = new DustEffect();
 const ceilingDebris = new CeilingDebris();
-const scene = new BasementScene(objectDisposer, dust, ceilingDebris, import.meta.env.BASE_URL);
+const scene = new BasementScene(objectDisposer, dust, ceilingDebris, import.meta.env.BASE_URL, tuningSettings);
 const overlayFactory = new CanvasOverlayFactory();
 const joystick = new VirtualJoystick(canvas, overlayFactory);
 const interactionPrompt = new InteractionPrompt(overlayFactory);
@@ -70,4 +73,18 @@ const application = new Application(canvas, scene, joystick, interactionPrompt, 
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => application.dispose());
+}
+
+if (import.meta.env.DEV) {
+  let isDisposed = false;
+  let disposeEditor: (() => void) | undefined;
+  import.meta.hot!.dispose(() => {
+    isDisposed = true;
+    disposeEditor?.();
+  });
+  void import('./tuning/editor/TuningEditor').then(({ TuningEditor }) => {
+    if (isDisposed) return;
+    const editor = new TuningEditor(tuningSettings);
+    disposeEditor = () => editor.dispose();
+  });
 }

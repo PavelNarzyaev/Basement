@@ -1,0 +1,31 @@
+.tuning-editor {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 100;
+  width: min(320px, calc(100vw - 28px));
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  color: #f5eee4;
+  background: #202632f2;
+  border: 1px solid #596c89;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px #0006;
+  font: 14px/1.4 system-ui, sans-serif;
+}
+.tuning-editor summary { padding: 14px 16px; cursor: pointer; font-weight: 600; }
+.tuning-editor summary span { float: right; color: #c5b48a; font-size: 11px; }
+.tuning-editor form { padding: 0 16px 16px; }
+.tuning-editor label { display: block; margin-bottom: 16px; }
+.tuning-editor label span { color: #aeb9ca; float: right; }
+.tuning-editor label div { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.tuning-editor input[type="range"] { flex: 1; min-width: 0; accent-color: #cfb787; }
+.tuning-editor input[type="number"] { width: 62px; }
+.tuning-editor input[type="text"] { width: 110px; }
+.tuning-editor input[type="color"] { width: 64px; height: 34px; padding: 2px; }
+.tuning-editor input, .tuning-editor button { color: inherit; background: #30394a; border: 1px solid #596c89; border-radius: 5px; padding: 6px; font: inherit; }
+.tuning-editor footer { display: flex; gap: 8px; }
+.tuning-editor button { cursor: pointer; }
+.tuning-editor button[type="submit"] { background: #435b48; flex: 1; }
+.tuning-status { font-size: 12px; color: #c5d7be; min-height: 34px; }
+.tuning-status[data-error="true"] { color: #ffb8ab; }

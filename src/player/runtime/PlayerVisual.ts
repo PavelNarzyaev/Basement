@@ -43,8 +43,9 @@ export class PlayerVisual implements IPlayerVisual {
       }
       this.currentAction = nextAction;
     }
-    this.move.setEffectiveTimeScale(actualHorizontalSpeed / playerSettings.unladenMovementSpeed);
-    this.carryMove.setEffectiveTimeScale(actualHorizontalSpeed / playerSettings.carryingMovementSpeed);
+    // Clip reference speeds stay fixed when gameplay speeds are tuned.
+    this.move.setEffectiveTimeScale(actualHorizontalSpeed / playerSettings.unladenAnimationSpeed);
+    this.carryMove.setEffectiveTimeScale(actualHorizontalSpeed / playerSettings.carryingAnimationSpeed);
     for (const action of this.actions) {
       action.setEffectiveWeight(MathUtils.damp(
         action.getEffectiveWeight(), action === this.currentAction ? 1 : 0, playerSettings.animationBlendRate, deltaSeconds,

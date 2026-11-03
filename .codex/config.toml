@@ -1,3 +1,7 @@
 [mcp_servers.blender]
 command = "uvx"
 args = ["mcp-for-blender"]
+
+[mcp_servers.basement_tuning]
+command = "node"
+args = ["C:/Projects/Basement/node_modules/tsx/dist/cli.mjs", "C:/Projects/Basement/tools/tuning-mcp.ts"]

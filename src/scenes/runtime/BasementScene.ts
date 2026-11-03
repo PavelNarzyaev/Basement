@@ -17,17 +17,22 @@ import { CrateSpawnDto } from '../contracts/CrateSpawnDto';
 import { SceneLayout } from './SceneLayout';
 import type { ICeilingDebris } from '../../ceiling_debris/contracts/ICeilingDebris';
 import { basementLightingSettings } from '../contracts/basementLightingSettings';
+import type { ITuningSettings } from '../../tuning/contracts/ITuningSettings';
+import { tuningDefaults } from '../../tuning/contracts/tuningDefaults';
 
 export class BasementScene implements IGameScene {
   readonly scene = new Scene();
   private isDisposed = false;
   private crateModel: Object3D | undefined;
+  private readonly lampLights: PointLight[] = [];
+  private appliedLampColor: string | undefined;
 
   constructor(
     private readonly objectDisposer: IObject3DResourceDisposer,
     private readonly dust: IDustEffect,
     private readonly ceilingDebris: ICeilingDebris,
     private readonly baseUrl: string,
+    private readonly settings: ITuningSettings = tuningDefaults,
   ) {
     this.scene.background = new Color('#151a24');
     this.scene.fog = new FogExp2(new Color(dustAppearanceSettings.color).multiplyScalar(dustAppearanceSettings.brightness), dustAppearanceSettings.fogDensity);
@@ -83,6 +88,10 @@ export class BasementScene implements IGameScene {
   }
 
   update(deltaSeconds: number): void {
+    if (this.appliedLampColor !== this.settings.lampColor) {
+      for (const light of this.lampLights) light.color.set(this.settings.lampColor);
+      this.appliedLampColor = this.settings.lampColor;
+    }
     this.dust.update(deltaSeconds);
     this.ceilingDebris.update(deltaSeconds);
   }
@@ -95,6 +104,7 @@ export class BasementScene implements IGameScene {
     this.objectDisposer.dispose(this.scene, ...(this.crateModel ? [this.crateModel] : []));
     this.crateModel = undefined;
     this.scene.clear();
+    this.lampLights.length = 0;
   }
 
   private addLampLights(model: Object3D): void {
@@ -105,7 +115,7 @@ export class BasementScene implements IGameScene {
 
     for (const marker of markers) {
       const light = new PointLight(
-        basementLightingSettings.lampColor,
+        this.settings.lampColor,
         basementLightingSettings.lampIntensity,
         basementLightingSettings.lampDistance,
         2,
@@ -113,6 +123,7 @@ export class BasementScene implements IGameScene {
       light.name = `${marker.userData.lightId}_PointLight`;
       light.castShadow = false;
       marker.add(light);
+      this.lampLights.push(light);
     }
   }
 }
