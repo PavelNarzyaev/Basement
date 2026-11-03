@@ -20,6 +20,7 @@ Follow the fail-fast principle when writing code. Do not introduce defensive che
 ## Coding Standards
 
 - Prioritize readability. Choose clear, precise names that describe actual behavior and purpose. Prefer clarity over brevity, and avoid abbreviations and acronyms where practical.
+- Preserve domain terminology and the object's role when naming local variables and aliases. Do not replace a precise source name with a generic synonym merely to shorten it (for example, prefer `crateCollider` over `box` for `crate.collider`). Omit parts of a name only when the enclosing scope makes their meaning clear and unambiguous (for example, `collider` when only one collider is relevant). Within reasonable limits, prefer a longer, explicit name over a shorter, ambiguous one; avoid redundant qualifiers and repetition of context. Use terms such as `cache`, `copy`, or `snapshot` only when they describe actual behavior.
 - Use nouns or noun phrases for types, interfaces, properties, variables, and parameters. Use verbs or verb phrases for functions and methods that perform actions.
 - Name booleans as yes/no conditions, using prefixes such as `is`, `has`, `can`, `should`, `was`, or `needs` where appropriate.
 - Follow the naming conventions already used in the project. In TypeScript, use `PascalCase` for classes, interfaces, and type aliases, and `camelCase` for functions, methods, properties, variables, and parameters.
