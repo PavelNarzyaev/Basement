@@ -1,6 +1,5 @@
 export interface ICarryPlacementSettings {
   readonly holdingGap: number;
-  readonly supportSampleExtent: number;
   readonly supportRayStartOffset: number;
   readonly maximumSupportDistance: number;
   readonly minimumSupportNormalY: number;

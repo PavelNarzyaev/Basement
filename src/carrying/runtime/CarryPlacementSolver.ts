@@ -10,12 +10,12 @@ export class CarryPlacementSolver implements ICarryPlacementSolver {
   private readonly up = new Vector3(0, 1, 0);
   private readonly trialBox = new YawBoxDto(new Vector3(), new Vector3());
   private readonly ray = new Ray(new Vector3(), new Vector3(0, -1, 0));
-  private readonly supportSamples = [
-    [0, 0],
-    [-carryPlacementSettings.supportSampleExtent, -carryPlacementSettings.supportSampleExtent],
-    [-carryPlacementSettings.supportSampleExtent, carryPlacementSettings.supportSampleExtent],
-    [carryPlacementSettings.supportSampleExtent, -carryPlacementSettings.supportSampleExtent],
-    [carryPlacementSettings.supportSampleExtent, carryPlacementSettings.supportSampleExtent],
+  private readonly supportRayOffsets = [
+    { x: 0, z: 0 },
+    { x: -1, z: -1 },
+    { x: -1, z: 1 },
+    { x: 1, z: -1 },
+    { x: 1, z: 1 },
   ] as const;
 
   constructor(private readonly world: ICollisionWorld) {}
@@ -47,23 +47,23 @@ export class CarryPlacementSolver implements ICarryPlacementSolver {
   }
 
   findSupportedPlacement(crate: ICarryable): Vector3 | undefined {
-    const box = crate.collider;
-    const rayHeight = box.center.y - box.halfSize.y + carryPlacementSettings.supportRayStartOffset;
+    const crateCollider = crate.collider;
+    const rayHeight = crateCollider.center.y - crateCollider.halfSize.y + carryPlacementSettings.supportRayStartOffset;
     let minimumHeight = Infinity;
     let maximumHeight = -Infinity;
-    for (const [x, z] of this.supportSamples) {
-      this.ray.origin.set(x * box.halfSize.x, 0, z * box.halfSize.z)
-        .applyAxisAngle(this.up, box.rotationY).add(box.center);
+    for (const offset of this.supportRayOffsets) {
+      this.ray.origin.set(offset.x * crateCollider.halfSize.x, 0, offset.z * crateCollider.halfSize.z)
+        .applyAxisAngle(this.up, crateCollider.rotationY).add(crateCollider.center);
       this.ray.origin.y = rayHeight;
-      const hit = this.world.castRay(this.ray, box);
+      const hit = this.world.castRay(this.ray, crateCollider);
       if (!hit || hit.distance > carryPlacementSettings.maximumSupportDistance || hit.normal.y < carryPlacementSettings.minimumSupportNormalY) return undefined;
       minimumHeight = Math.min(minimumHeight, hit.position.y);
       maximumHeight = Math.max(maximumHeight, hit.position.y);
     }
     // Require support across the footprint, so a trolley rim cannot balance the crate in midair.
     if (maximumHeight - minimumHeight > carryPlacementSettings.maximumSupportHeightDifference) return undefined;
-    const center = box.center.clone();
-    center.y = maximumHeight + box.halfSize.y + carryPlacementSettings.placementGap;
-    return this.canOccupyPose(crate, center, box.rotationY) ? center : undefined;
+    const center = crateCollider.center.clone();
+    center.y = maximumHeight + crateCollider.halfSize.y + carryPlacementSettings.placementGap;
+    return this.canOccupyPose(crate, center, crateCollider.rotationY) ? center : undefined;
   }
 }
