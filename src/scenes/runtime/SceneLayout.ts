@@ -5,6 +5,7 @@ import { PlayerSpawnDto } from '../../player/contracts/PlayerSpawnDto';
 import { CratePlacementDto } from '../contracts/CratePlacementDto';
 
 export class SceneLayout {
+  private static readonly upDirectionToleranceSquared = 0.000001;
   readonly playerSpawn: PlayerSpawnDto;
   readonly cratePlacements: readonly CratePlacementDto[];
   readonly cargoZone: YawBoxDto;
@@ -44,7 +45,7 @@ export class SceneLayout {
   private getYaw(object: Object3D): number {
     const orientation = object.getWorldQuaternion(new Quaternion());
     const up = new Vector3(0, 1, 0).applyQuaternion(orientation);
-    if (up.distanceToSquared(new Vector3(0, 1, 0)) > 0.000001) {
+    if (up.distanceToSquared(new Vector3(0, 1, 0)) > SceneLayout.upDirectionToleranceSquared) {
       throw new Error(`Gameplay marker ${object.name} must rotate only around the vertical axis.`);
     }
     const forward = new Vector3(0, 0, 1).applyQuaternion(orientation);

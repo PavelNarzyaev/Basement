@@ -9,6 +9,8 @@ import { PlayerMovement } from './PlayerMovement';
 import { PlayerStateMachine } from './PlayerStateMachine';
 
 export class Player implements IPlayer {
+  private static readonly maximumFrameDeltaSeconds = 0.1;
+  private static readonly carryingTurnSpeedRadians = 6;
   readonly object = new Group();
   private readonly movement: PlayerMovement;
   private readonly spawnRotationY: number;
@@ -39,7 +41,7 @@ export class Player implements IPlayer {
   update(deltaSeconds: number, worldMovementDirection: Vector3, yawDeltaRadians = 0): void {
     this.targetYawRadians += yawDeltaRadians;
     this.desiredHorizontalVelocity.set(worldMovementDirection.x, 0, worldMovementDirection.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.movementSpeed);
-    const elapsed = Math.min(deltaSeconds, 0.1);
+    const elapsed = Math.min(deltaSeconds, Player.maximumFrameDeltaSeconds);
     this.accumulator += elapsed;
     this.traveledDistance = 0;
     let simulatedTime = 0;
@@ -127,7 +129,7 @@ export class Player implements IPlayer {
       return;
     }
     const angle = Math.atan2(Math.sin(target - this.object.rotation.y), Math.cos(target - this.object.rotation.y));
-    const rotation = this.object.rotation.y + MathUtils.clamp(angle, -6 * PlayerMovement.fixedStep, 6 * PlayerMovement.fixedStep);
+    const rotation = this.object.rotation.y + MathUtils.clamp(angle, -Player.carryingTurnSpeedRadians * PlayerMovement.fixedStep, Player.carryingTurnSpeedRadians * PlayerMovement.fixedStep);
     this.movement.collider.getCenter(this.playerCenter);
     this.carryPlacement.getHoldingCenter(this.playerCenter, rotation, crate, this.holdingCenter);
     if (this.carryPlacement.canSweepToPose(crate, this.holdingCenter, rotation)) {

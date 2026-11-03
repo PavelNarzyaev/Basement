@@ -1,6 +1,7 @@
+import { playerMovementSpeeds } from '../../contracts/playerSettings';
 import type { IPlayerState } from '../../contracts/IPlayerState';
 
 export class UnladenState implements IPlayerState {
-  readonly movementSpeed = 4;
+  readonly movementSpeed = playerMovementSpeeds.unladen;
   readonly carriedObject = undefined;
 }

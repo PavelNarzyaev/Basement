@@ -9,6 +9,7 @@ import { RayHitDto } from '../contracts/RayHitDto';
 import { YawBoxCollision } from './YawBoxCollision';
 
 export class CollisionWorld implements ICollisionWorld {
+  private static readonly minimumPenetrationDepth = 0.000001;
   readonly bounds: Box3;
   private readonly octree: Octree;
   private readonly boxCollision = new YawBoxCollision();
@@ -37,7 +38,7 @@ export class CollisionWorld implements ICollisionWorld {
 
   intersectCapsule(capsule: Capsule, ignoredBox?: YawBoxDto): CollisionDto | false {
     const collision = this.octree.capsuleIntersect(capsule);
-    if (collision && collision.depth > 0.000001) return new CollisionDto(collision.normal, collision.depth);
+    if (collision && collision.depth > CollisionWorld.minimumPenetrationDepth) return new CollisionDto(collision.normal, collision.depth);
     for (const box of this.boxes) {
       if (box === ignoredBox) continue;
       const boxCollision = this.boxCollision.intersectCapsule(capsule, box);

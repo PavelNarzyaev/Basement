@@ -1,4 +1,5 @@
 import { Ray, Vector3 } from 'three';
+import { playerDimensions } from '../../player/contracts/playerSettings';
 import type { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { IYawBoxCollision } from '../../collision/contracts/IYawBoxCollision';
@@ -7,17 +8,30 @@ import type { ICarryable } from '../contracts/ICarryable';
 import type { ICarryPlacementSolver } from '../contracts/ICarryPlacementSolver';
 
 export class CarryPlacementSolver implements ICarryPlacementSolver {
+  private static readonly holdingGap = 0.08;
+  private static readonly supportSampleExtent = 0.9;
+  private static readonly supportRayStartOffset = 0.12;
+  private static readonly maximumSupportDistance = 1.5;
+  private static readonly minimumSupportNormalY = 0.95;
+  private static readonly maximumSupportHeightDifference = 0.04;
+  private static readonly placementGap = 0.005;
   private static readonly sweepStep = 0.03;
   private static readonly holdingHeight = 0.3;
   private readonly up = new Vector3(0, 1, 0);
   private readonly trialBox = new YawBoxDto(new Vector3(), new Vector3());
   private readonly ray = new Ray(new Vector3(), new Vector3(0, -1, 0));
-  private readonly supportSamples = [[0, 0], [-0.9, -0.9], [-0.9, 0.9], [0.9, -0.9], [0.9, 0.9]] as const;
+  private readonly supportSamples = [
+    [0, 0],
+    [-CarryPlacementSolver.supportSampleExtent, -CarryPlacementSolver.supportSampleExtent],
+    [-CarryPlacementSolver.supportSampleExtent, CarryPlacementSolver.supportSampleExtent],
+    [CarryPlacementSolver.supportSampleExtent, -CarryPlacementSolver.supportSampleExtent],
+    [CarryPlacementSolver.supportSampleExtent, CarryPlacementSolver.supportSampleExtent],
+  ] as const;
 
   constructor(private readonly world: ICollisionWorld, private readonly boxCollision: IYawBoxCollision) {}
 
   getHoldingCenter(playerCenter: Vector3, rotationY: number, crate: ICarryable, target: Vector3): Vector3 {
-    return target.set(0, CarryPlacementSolver.holdingHeight, 0.43 + crate.collider.halfSize.z + 0.08)
+    return target.set(0, CarryPlacementSolver.holdingHeight, playerDimensions.colliderRadius + crate.collider.halfSize.z + CarryPlacementSolver.holdingGap)
       .applyAxisAngle(this.up, rotationY).add(playerCenter);
   }
 
@@ -44,7 +58,7 @@ export class CarryPlacementSolver implements ICarryPlacementSolver {
 
   findSupportedPlacement(crate: ICarryable, playerCollider: Capsule): Vector3 | undefined {
     const box = crate.collider;
-    const rayHeight = box.center.y - box.halfSize.y + 0.12;
+    const rayHeight = box.center.y - box.halfSize.y + CarryPlacementSolver.supportRayStartOffset;
     let minimumHeight = Infinity;
     let maximumHeight = -Infinity;
     for (const [x, z] of this.supportSamples) {
@@ -52,14 +66,14 @@ export class CarryPlacementSolver implements ICarryPlacementSolver {
         .applyAxisAngle(this.up, box.rotationY).add(box.center);
       this.ray.origin.y = rayHeight;
       const hit = this.world.castRay(this.ray, box);
-      if (!hit || hit.distance > 1.5 || hit.normal.y < 0.95) return undefined;
+      if (!hit || hit.distance > CarryPlacementSolver.maximumSupportDistance || hit.normal.y < CarryPlacementSolver.minimumSupportNormalY) return undefined;
       minimumHeight = Math.min(minimumHeight, hit.position.y);
       maximumHeight = Math.max(maximumHeight, hit.position.y);
     }
     // Require support across the footprint, so a trolley rim cannot balance the crate in midair.
-    if (maximumHeight - minimumHeight > 0.04) return undefined;
+    if (maximumHeight - minimumHeight > CarryPlacementSolver.maximumSupportHeightDifference) return undefined;
     const center = box.center.clone();
-    center.y = maximumHeight + box.halfSize.y + 0.005;
+    center.y = maximumHeight + box.halfSize.y + CarryPlacementSolver.placementGap;
     this.trialBox.center.copy(center);
     this.trialBox.halfSize.copy(box.halfSize);
     this.trialBox.rotationY = box.rotationY;

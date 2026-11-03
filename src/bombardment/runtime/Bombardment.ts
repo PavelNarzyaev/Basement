@@ -1,4 +1,5 @@
 import { Vector3 } from 'three';
+import { bombardmentIntervalSeconds } from '../contracts/bombardmentTiming';
 import type { PerspectiveCamera } from 'three';
 import type { IBombardmentAudio } from '../contracts/IBombardmentAudio';
 import type { IBombardmentClock } from '../contracts/IBombardmentClock';
@@ -7,6 +8,15 @@ import type { IDustEffect } from '../../dust/contracts/IDustEffect';
 import type { ICeilingDebris } from '../../ceiling_debris/contracts/ICeilingDebris';
 
 export class Bombardment implements IBombardment {
+  private static readonly audioScheduleLookaheadSeconds = 1;
+  private static readonly dustImpactDurationSeconds = 5;
+  private static readonly cameraShakeDurationSeconds = 1.4;
+  private static readonly cameraShakeAmplitudeRadians = 0.035;
+  private static readonly pitchShakeFrequency = 83;
+  private static readonly yawShakeFrequency = 107;
+  private static readonly rollShakeFrequency = 71;
+  private static readonly yawShakeScale = 0.6;
+  private static readonly rollShakeScale = 0.5;
   private readonly visibilityController = new AbortController();
   private isDisposed = false;
   private startTime: number | undefined;
@@ -40,7 +50,7 @@ export class Bombardment implements IBombardment {
     this.ceilingDebris.reset();
     this.startTime = this.clock.currentTime;
     this.audio.start(this.startTime);
-    this.nextImpactTime = this.startTime + 15;
+    this.nextImpactTime = this.startTime + bombardmentIntervalSeconds;
     if (!document.hidden) this.scheduleImpact();
   }
 
@@ -51,28 +61,28 @@ export class Bombardment implements IBombardment {
     const nextWhistleTime = this.nextImpactTime - whistleDuration;
     // Skip whole impacts whose whistle can no longer start on time.
     if (nextWhistleTime < time) {
-      this.nextImpactTime += Math.ceil((time - nextWhistleTime) / 15) * 15;
+      this.nextImpactTime += Math.ceil((time - nextWhistleTime) / bombardmentIntervalSeconds) * bombardmentIntervalSeconds;
     }
-    if (this.nextImpactTime - whistleDuration <= time + 1) this.scheduleImpact();
+    if (this.nextImpactTime - whistleDuration <= time + Bombardment.audioScheduleLookaheadSeconds) this.scheduleImpact();
     const elapsed = time - this.startTime;
-    const impact = Math.floor(elapsed / 15);
-    const impactAge = elapsed % 15;
-    this.dust.setImpactStrength(impact > 0 ? Math.pow(Math.max(0, 1 - impactAge / 5), 2) : 0);
+    const impact = Math.floor(elapsed / bombardmentIntervalSeconds);
+    const impactAge = elapsed % bombardmentIntervalSeconds;
+    this.dust.setImpactStrength(impact > 0 ? Math.pow(Math.max(0, 1 - impactAge / Bombardment.dustImpactDurationSeconds), 2) : 0);
     if (impact > this.lastImpact) {
       this.lastImpact = impact;
       // Do not replay an old burst when returning from a background tab.
-      if (impactAge < 1.4) {
+      if (impactAge < Bombardment.cameraShakeDurationSeconds) {
         camera.getWorldDirection(this.cameraDirection);
         this.ceilingDebris.burst(playerPosition, this.cameraDirection);
       }
     }
-    if (elapsed < 15) return;
-    if (impactAge >= 1.4) return;
-    const strength = 0.035 * Math.pow(1 - impactAge / 1.4, 2);
+    if (elapsed < bombardmentIntervalSeconds) return;
+    if (impactAge >= Bombardment.cameraShakeDurationSeconds) return;
+    const strength = Bombardment.cameraShakeAmplitudeRadians * Math.pow(1 - impactAge / Bombardment.cameraShakeDurationSeconds, 2);
     // Apply after the orbit controller resets the pose, so shake never accumulates.
-    camera.rotateX(Math.sin(impactAge * 83) * strength);
-    camera.rotateY(Math.sin(impactAge * 107) * strength * 0.6);
-    camera.rotateZ(Math.cos(impactAge * 71) * strength * 0.5);
+    camera.rotateX(Math.sin(impactAge * Bombardment.pitchShakeFrequency) * strength);
+    camera.rotateY(Math.sin(impactAge * Bombardment.yawShakeFrequency) * strength * Bombardment.yawShakeScale);
+    camera.rotateZ(Math.cos(impactAge * Bombardment.rollShakeFrequency) * strength * Bombardment.rollShakeScale);
   }
 
   dispose(): void {
@@ -90,13 +100,13 @@ export class Bombardment implements IBombardment {
     this.ceilingDebris.reset();
     if (document.hidden) return;
     this.startTime = this.clock.currentTime;
-    this.nextImpactTime = this.startTime + 15;
+    this.nextImpactTime = this.startTime + bombardmentIntervalSeconds;
     this.lastImpact = 0;
     this.scheduleImpact();
   };
 
   private scheduleImpact(): void {
     this.audio.scheduleImpact(this.nextImpactTime);
-    this.nextImpactTime += 15;
+    this.nextImpactTime += bombardmentIntervalSeconds;
   }
 }

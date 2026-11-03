@@ -5,6 +5,9 @@ import type { ICarryable } from '../contracts/ICarryable';
 import type { ICrateInteractionController } from '../contracts/ICrateInteractionController';
 
 export class CrateInteractionController implements ICrateInteractionController {
+  private static readonly maximumPickupDistance = 1.4;
+  private static readonly minimumForwardAlignment = 0.25;
+  private static readonly visibilityDistanceTolerance = 0.03;
   private readonly direction = new Vector3();
   private readonly forward = new Vector3();
   private readonly ray = new Ray();
@@ -38,17 +41,17 @@ export class CrateInteractionController implements ICrateInteractionController {
 
   private findPickupCandidate(): ICarryable | undefined {
     let closest: ICarryable | undefined;
-    let closestDistance = 1.4;
+    let closestDistance = CrateInteractionController.maximumPickupDistance;
     this.forward.set(Math.sin(this.player.object.rotation.y), 0, Math.cos(this.player.object.rotation.y));
     for (const crate of this.crates) {
       this.direction.subVectors(crate.collider.center, this.player.object.position);
       const distance = this.direction.length();
       if (distance > closestDistance) continue;
       const horizontalDistance = Math.hypot(this.direction.x, this.direction.z);
-      if (this.forward.dot(this.direction) < horizontalDistance * 0.25) continue;
+      if (this.forward.dot(this.direction) < horizontalDistance * CrateInteractionController.minimumForwardAlignment) continue;
       this.ray.set(this.player.object.position, this.direction.normalize());
       const obstacle = this.world.castRay(this.ray, crate.collider);
-      if (obstacle && obstacle.distance < distance - 0.03) continue;
+      if (obstacle && obstacle.distance < distance - CrateInteractionController.visibilityDistanceTolerance) continue;
       closest = crate;
       closestDistance = distance;
     }
