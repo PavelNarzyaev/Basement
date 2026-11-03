@@ -36,11 +36,13 @@ export class DustEffect implements IDustEffect {
       uniform vec3 regionSize;
       uniform float dustRadius;
       uniform float fadeStart;
-      attribute vec3 variation;
+      attribute float phaseOffset;
+      attribute float particleSize;
+      attribute float densityThreshold;
       varying float visibility;
 
       void main() {
-        float phase = variation.x * 6.283185;
+        float phase = phaseOffset * 6.283185;
         vec3 swirl = vec3(
           sin(elapsedTime * 0.43 + phase),
           sin(elapsedTime * 0.31 + phase * 2.0),
@@ -54,14 +56,14 @@ export class DustEffect implements IDustEffect {
         vec3 worldPosition = regionMin + localPosition;
         vec4 viewPosition = viewMatrix * vec4(worldPosition, 1.0);
         gl_Position = projectionMatrix * viewPosition;
-        gl_PointSize = clamp(variation.y * viewportHeight * projectionMatrix[1][1]
+        gl_PointSize = clamp(particleSize * viewportHeight * projectionMatrix[1][1]
           / max(-viewPosition.z, 0.1), 1.0, 24.0);
 
         vec3 edge = min(localPosition, regionSize - localPosition);
         float edgeFade = smoothstep(0.0, 0.35, min(edge.x, min(edge.y, edge.z)));
         float nearFade = smoothstep(0.2, 0.8, -viewPosition.z);
         float distanceFade = 1.0 - smoothstep(fadeStart, dustRadius, distance(worldPosition, cameraPosition));
-        visibility = edgeFade * nearFade * distanceFade * smoothstep(variation.z, variation.z + 0.04, density);
+        visibility = edgeFade * nearFade * distanceFade * smoothstep(densityThreshold, densityThreshold + 0.04, density);
       }
     `,
     fragmentShader: /* glsl */ `
@@ -102,13 +104,19 @@ export class DustEffect implements IDustEffect {
     // Reserve room for denser bombardment dust without reallocating GPU buffers.
     const count = Math.ceil(regionSize.x * regionSize.y * regionSize.z * 6);
     const positions = new Float32Array(count * 3);
-    const variations = new Float32Array(count * 3);
+    const phaseOffsets = new Float32Array(count);
+    const particleSizes = new Float32Array(count);
+    const densityThresholds = new Float32Array(count);
     for (let index = 0; index < count; index++) {
       positions.set([Math.random() * regionSize.x, Math.random() * regionSize.y, Math.random() * regionSize.z], index * 3);
-      variations.set([Math.random(), 0.005 + Math.random() * 0.009, Math.random() * 0.96], index * 3);
+      phaseOffsets[index] = Math.random();
+      particleSizes[index] = 0.005 + Math.random() * 0.009;
+      densityThresholds[index] = Math.random() * 0.96;
     }
     this.geometry.setAttribute('position', new BufferAttribute(positions, 3));
-    this.geometry.setAttribute('variation', new BufferAttribute(variations, 3));
+    this.geometry.setAttribute('phaseOffset', new BufferAttribute(phaseOffsets, 1));
+    this.geometry.setAttribute('particleSize', new BufferAttribute(particleSizes, 1));
+    this.geometry.setAttribute('densityThreshold', new BufferAttribute(densityThresholds, 1));
   }
 
   setSettings(settings: DustSettingsDto): void {
