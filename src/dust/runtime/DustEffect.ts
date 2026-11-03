@@ -2,7 +2,7 @@ import { BufferAttribute, BufferGeometry, Color, Points, ShaderMaterial, Vector2
 import type { IDustEffect } from '../contracts/IDustEffect';
 import { DustSettingsDto } from '../contracts/DustSettingsDto';
 import type { DustVolumeDto } from '../contracts/DustVolumeDto';
-import { dustBrightness, dustColor, dustFadeStart, dustRadius } from '../contracts/dustAppearance';
+import { dustAppearanceSettings } from '../contracts/dustAppearanceSettings';
 
 export class DustEffect implements IDustEffect {
   private settings = new DustSettingsDto();
@@ -17,9 +17,9 @@ export class DustEffect implements IDustEffect {
     volumeMin: { value: new Vector3() },
     volumeSize: { value: new Vector3() },
     regionSize: { value: new Vector3() },
-    dustRadius: { value: dustRadius },
-    fadeStart: { value: dustFadeStart },
-    dustColor: { value: new Color(dustColor).multiplyScalar(dustBrightness) },
+    dustRadius: { value: dustAppearanceSettings.radius },
+    fadeStart: { value: dustAppearanceSettings.fadeStart },
+    dustColor: { value: new Color(dustAppearanceSettings.color).multiplyScalar(dustAppearanceSettings.brightness) },
   };
   private readonly material = new ShaderMaterial({
     uniforms: this.uniforms,
@@ -97,7 +97,7 @@ export class DustEffect implements IDustEffect {
   initialize(volume: DustVolumeDto): void {
     const size = volume.bounds.getSize(this.uniforms.volumeSize.value);
     this.uniforms.volumeMin.value.copy(volume.bounds.min);
-    const regionSize = this.uniforms.regionSize.value.copy(size).min(new Vector3().setScalar(dustRadius * 2));
+    const regionSize = this.uniforms.regionSize.value.copy(size).min(new Vector3().setScalar(dustAppearanceSettings.radius * 2));
 
     // Reserve room for denser bombardment dust without reallocating GPU buffers.
     const count = Math.ceil(regionSize.x * regionSize.y * regionSize.z * 6);

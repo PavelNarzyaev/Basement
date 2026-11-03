@@ -1,22 +1,14 @@
 import { Vector3 } from 'three';
-import { playerDimensions } from '../contracts/playerSettings';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import type { ICollisionWorld } from '../../collision/contracts/ICollisionWorld';
 import type { YawBoxDto } from '../../collision/contracts/YawBoxDto';
+import { playerSettings } from '../contracts/playerSettings';
 
 export class PlayerMovement {
-  private static readonly fallResetDepth = 3;
-  private static readonly gravity = 20;
-  private static readonly maximumCollisionIterations = 6;
-  private static readonly contactSeparation = 0.00001;
-  static readonly colliderHeight = playerDimensions.colliderHeight;
-  static readonly fixedStep = 1 / 120;
-  private static readonly colliderRadius = playerDimensions.colliderRadius;
-
   readonly collider = new Capsule(
-    new Vector3(0, PlayerMovement.colliderRadius, 0),
-    new Vector3(0, PlayerMovement.colliderHeight - PlayerMovement.colliderRadius, 0),
-    PlayerMovement.colliderRadius,
+    new Vector3(0, playerSettings.colliderRadius, 0),
+    new Vector3(0, playerSettings.colliderHeight - playerSettings.colliderRadius, 0),
+    playerSettings.colliderRadius,
   );
   private readonly velocity = new Vector3();
   private readonly displacement = new Vector3();
@@ -26,7 +18,7 @@ export class PlayerMovement {
 
   constructor(private readonly world: ICollisionWorld, spawn: Vector3) {
     this.spawn = spawn.clone();
-    this.minimumHeight = world.bounds.min.y - PlayerMovement.fallResetDepth;
+    this.minimumHeight = world.bounds.min.y - playerSettings.fallResetDepth;
     this.reset();
   }
 
@@ -37,18 +29,18 @@ export class PlayerMovement {
   integrateVelocity(desiredHorizontalVelocity: Vector3): void {
     this.velocity.x = desiredHorizontalVelocity.x;
     this.velocity.z = desiredHorizontalVelocity.z;
-    this.velocity.y -= PlayerMovement.gravity * PlayerMovement.fixedStep;
+    this.velocity.y -= playerSettings.gravity * playerSettings.fixedStep;
   }
 
   moveAlongAxis(axis: 'x' | 'y' | 'z', ignoredBox?: YawBoxDto): void {
     this.previousCollider.copy(this.collider);
     this.displacement.set(0, 0, 0);
-    this.displacement[axis] = this.velocity[axis] * PlayerMovement.fixedStep;
+    this.displacement[axis] = this.velocity[axis] * playerSettings.fixedStep;
     this.collider.translate(this.displacement);
-    for (let iteration = 0; iteration < PlayerMovement.maximumCollisionIterations; iteration++) {
+    for (let iteration = 0; iteration < playerSettings.maximumCollisionIterations; iteration++) {
       const collision = this.world.intersectCapsule(this.collider, ignoredBox);
       if (!collision) break;
-      this.collider.translate(this.displacement.copy(collision.normal).multiplyScalar(collision.depth + PlayerMovement.contactSeparation));
+      this.collider.translate(this.displacement.copy(collision.normal).multiplyScalar(collision.depth + playerSettings.contactSeparation));
       const inwardSpeed = this.velocity.dot(collision.normal);
       if (inwardSpeed < 0) this.velocity.addScaledVector(collision.normal, -inwardSpeed);
     }
@@ -62,9 +54,9 @@ export class PlayerMovement {
 
   reset(): void {
     this.collider.start.copy(this.spawn);
-    this.collider.start.y += PlayerMovement.colliderRadius;
+    this.collider.start.y += playerSettings.colliderRadius;
     this.collider.end.copy(this.spawn);
-    this.collider.end.y += PlayerMovement.colliderHeight - PlayerMovement.colliderRadius;
+    this.collider.end.y += playerSettings.colliderHeight - playerSettings.colliderRadius;
     this.velocity.set(0, 0, 0);
   }
 }

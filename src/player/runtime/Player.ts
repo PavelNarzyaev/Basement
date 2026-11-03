@@ -7,10 +7,9 @@ import type { IPlayerVisual } from '../contracts/IPlayerVisual';
 import type { PlayerSpawnDto } from '../contracts/PlayerSpawnDto';
 import { PlayerMovement } from './PlayerMovement';
 import { PlayerStateMachine } from './PlayerStateMachine';
+import { playerSettings } from '../contracts/playerSettings';
 
 export class Player implements IPlayer {
-  private static readonly maximumFrameDeltaSeconds = 0.1;
-  private static readonly carryingTurnSpeedRadians = 6;
   readonly object = new Group();
   private readonly movement: PlayerMovement;
   private readonly spawnRotationY: number;
@@ -33,7 +32,7 @@ export class Player implements IPlayer {
     this.movement = new PlayerMovement(world, spawn.position);
     this.spawnRotationY = spawn.rotationY;
     this.object.name = 'PlayerController';
-    this.visual.object.position.y = -PlayerMovement.colliderHeight / 2;
+    this.visual.object.position.y = -playerSettings.colliderHeight / 2;
     this.object.add(this.visual.object);
     this.reset();
   }
@@ -41,14 +40,14 @@ export class Player implements IPlayer {
   update(deltaSeconds: number, worldMovementDirection: Vector3, yawDeltaRadians = 0): void {
     this.targetYawRadians += yawDeltaRadians;
     this.desiredHorizontalVelocity.set(worldMovementDirection.x, 0, worldMovementDirection.z).clampLength(0, 1).multiplyScalar(this.stateMachine.state.movementSpeed);
-    const elapsed = Math.min(deltaSeconds, Player.maximumFrameDeltaSeconds);
+    const elapsed = Math.min(deltaSeconds, playerSettings.maximumFrameDeltaSeconds);
     this.accumulator += elapsed;
     this.traveledDistance = 0;
     let simulatedTime = 0;
-    while (this.accumulator >= PlayerMovement.fixedStep) {
+    while (this.accumulator >= playerSettings.fixedStep) {
       this.step();
-      this.accumulator -= PlayerMovement.fixedStep;
-      simulatedTime += PlayerMovement.fixedStep;
+      this.accumulator -= playerSettings.fixedStep;
+      simulatedTime += playerSettings.fixedStep;
     }
     this.movement.collider.getCenter(this.object.position);
     if (simulatedTime > 0) this.actualHorizontalSpeed = this.traveledDistance / simulatedTime;
@@ -129,7 +128,7 @@ export class Player implements IPlayer {
       return;
     }
     const angle = Math.atan2(Math.sin(target - this.object.rotation.y), Math.cos(target - this.object.rotation.y));
-    const rotation = this.object.rotation.y + MathUtils.clamp(angle, -Player.carryingTurnSpeedRadians * PlayerMovement.fixedStep, Player.carryingTurnSpeedRadians * PlayerMovement.fixedStep);
+    const rotation = this.object.rotation.y + MathUtils.clamp(angle, -playerSettings.carryingTurnSpeedRadians * playerSettings.fixedStep, playerSettings.carryingTurnSpeedRadians * playerSettings.fixedStep);
     this.movement.collider.getCenter(this.playerCenter);
     this.carryPlacement.getHoldingCenter(this.playerCenter, rotation, crate, this.holdingCenter);
     if (this.carryPlacement.canSweepToPose(crate, this.holdingCenter, rotation)) {

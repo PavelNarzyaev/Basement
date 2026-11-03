@@ -1,12 +1,10 @@
 import { AnimationMixer, MathUtils } from 'three';
-import { playerMovementSpeeds } from '../contracts/playerSettings';
 import type { AnimationAction, AnimationClip, Object3D } from 'three';
 import type { IObject3DResourceDisposer } from '../../disposer/contracts/IObject3DResourceDisposer';
 import type { IPlayerVisual } from '../contracts/IPlayerVisual';
+import { playerSettings } from '../contracts/playerSettings';
 
 export class PlayerVisual implements IPlayerVisual {
-  private static readonly minimumMovementSpeed = 0.02;
-  private static readonly animationBlendRate = 20;
   private readonly mixer: AnimationMixer;
   private readonly idle: AnimationAction;
   private readonly move: AnimationAction;
@@ -32,7 +30,7 @@ export class PlayerVisual implements IPlayerVisual {
   }
 
   update(deltaSeconds: number, actualHorizontalSpeed: number, isCarrying: boolean): void {
-    const isMoving = actualHorizontalSpeed > PlayerVisual.minimumMovementSpeed;
+    const isMoving = actualHorizontalSpeed > playerSettings.minimumMovementSpeed;
     const nextAction = isCarrying
       ? (isMoving ? this.carryMove : this.carryIdle)
       : (isMoving ? this.move : this.idle);
@@ -45,11 +43,11 @@ export class PlayerVisual implements IPlayerVisual {
       }
       this.currentAction = nextAction;
     }
-    this.move.setEffectiveTimeScale(actualHorizontalSpeed / playerMovementSpeeds.unladen);
-    this.carryMove.setEffectiveTimeScale(actualHorizontalSpeed / playerMovementSpeeds.carrying);
+    this.move.setEffectiveTimeScale(actualHorizontalSpeed / playerSettings.unladenMovementSpeed);
+    this.carryMove.setEffectiveTimeScale(actualHorizontalSpeed / playerSettings.carryingMovementSpeed);
     for (const action of this.actions) {
       action.setEffectiveWeight(MathUtils.damp(
-        action.getEffectiveWeight(), action === this.currentAction ? 1 : 0, PlayerVisual.animationBlendRate, deltaSeconds,
+        action.getEffectiveWeight(), action === this.currentAction ? 1 : 0, playerSettings.animationBlendRate, deltaSeconds,
       ));
     }
     this.mixer.update(deltaSeconds);

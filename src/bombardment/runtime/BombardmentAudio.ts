@@ -1,11 +1,8 @@
-import { bombardmentIntervalSeconds } from '../contracts/bombardmentTiming';
+import { bombardmentSettings } from '../contracts/bombardmentSettings';
 import type { IBombardmentAudio } from '../contracts/IBombardmentAudio';
 import type { IBombardmentClock } from '../contracts/IBombardmentClock';
 
 export class BombardmentAudio implements IBombardmentAudio, IBombardmentClock {
-  private static readonly sirenDelaySeconds = 50;
-  private static readonly explosionDelaySeconds = 0.2;
-  private static readonly sirenGain = 0.3;
   private readonly audioContext = new AudioContext();
   private readonly buffers = new Map<string, AudioBuffer>();
   private readonly sources = new Set<AudioBufferSourceNode>();
@@ -33,8 +30,8 @@ export class BombardmentAudio implements IBombardmentAudio, IBombardmentClock {
         signal.throwIfAborted();
         buffers.set(name, buffer);
       }));
-      if (buffers.get('bomb-whistle')!.duration > bombardmentIntervalSeconds) {
-        throw new Error(`Bomb whistle must fit within the ${bombardmentIntervalSeconds}-second bombardment interval.`);
+      if (buffers.get('bomb-whistle')!.duration > bombardmentSettings.intervalSeconds) {
+        throw new Error(`Bomb whistle must fit within the ${bombardmentSettings.intervalSeconds}-second bombardment interval.`);
       }
       for (const [name, buffer] of buffers) this.buffers.set(name, buffer);
     } catch (error) {
@@ -49,12 +46,12 @@ export class BombardmentAudio implements IBombardmentAudio, IBombardmentClock {
     // Resume inside the user gesture to unlock audio on mobile browsers.
     void this.audioContext.resume().catch((error: unknown) => console.error('Could not start audio:', error));
     this.play('background', time, true);
-    this.play('siren', time + BombardmentAudio.sirenDelaySeconds, true);
+    this.play('siren', time + bombardmentSettings.sirenDelaySeconds, true);
   }
 
   scheduleImpact(time: number): void {
     this.impactSources.add(this.play('bomb-whistle', time - this.whistleDuration));
-    this.impactSources.add(this.play('bomb-explosion', time + BombardmentAudio.explosionDelaySeconds));
+    this.impactSources.add(this.play('bomb-explosion', time + bombardmentSettings.explosionDelaySeconds));
   }
 
   stopImpacts(): void {
@@ -85,7 +82,7 @@ export class BombardmentAudio implements IBombardmentAudio, IBombardmentClock {
     source.buffer = this.buffers.get(name)!;
     source.loop = isLooping;
     const gain = this.audioContext.createGain();
-    gain.gain.value = name === 'siren' ? BombardmentAudio.sirenGain : 1;
+    gain.gain.value = name === 'siren' ? bombardmentSettings.sirenGain : 1;
     source.connect(gain);
     gain.connect(this.audioContext.destination);
     source.onended = () => {

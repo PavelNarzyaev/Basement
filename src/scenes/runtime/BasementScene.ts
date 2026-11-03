@@ -10,18 +10,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { IObject3DResourceDisposer } from '../../disposer/contracts/IObject3DResourceDisposer';
 import type { IDustEffect } from '../../dust/contracts/IDustEffect';
 import { DustVolumeDto } from '../../dust/contracts/DustVolumeDto';
-import { dustBrightness, dustColor, dustFogDensity } from '../../dust/contracts/dustAppearance';
+import { dustAppearanceSettings } from '../../dust/contracts/dustAppearanceSettings';
 import { SceneLoadResultDto } from '../contracts/SceneLoadResultDto';
 import type { IGameScene } from '../contracts/IGameScene';
 import { CrateSpawnDto } from '../contracts/CrateSpawnDto';
 import { SceneLayout } from './SceneLayout';
 import type { ICeilingDebris } from '../../ceiling_debris/contracts/ICeilingDebris';
+import { basementLightingSettings } from '../contracts/basementLightingSettings';
 
 export class BasementScene implements IGameScene {
-  private static readonly lampColor = '#ffdfaa';
-  private static readonly lampIntensity = 5;
-  private static readonly lampDistance = 150;
-
   readonly scene = new Scene();
   private isDisposed = false;
   private crateModel: Object3D | undefined;
@@ -33,7 +30,7 @@ export class BasementScene implements IGameScene {
     private readonly baseUrl: string,
   ) {
     this.scene.background = new Color('#151a24');
-    this.scene.fog = new FogExp2(new Color(dustColor).multiplyScalar(dustBrightness), dustFogDensity);
+    this.scene.fog = new FogExp2(new Color(dustAppearanceSettings.color).multiplyScalar(dustAppearanceSettings.brightness), dustAppearanceSettings.fogDensity);
   }
 
   async load(onProgress: (percentage: number | undefined) => void): Promise<SceneLoadResultDto> {
@@ -108,9 +105,9 @@ export class BasementScene implements IGameScene {
 
     for (const marker of markers) {
       const light = new PointLight(
-        BasementScene.lampColor,
-        BasementScene.lampIntensity,
-        BasementScene.lampDistance,
+        basementLightingSettings.lampColor,
+        basementLightingSettings.lampIntensity,
+        basementLightingSettings.lampDistance,
         2,
       );
       light.name = `${marker.userData.lightId}_PointLight`;

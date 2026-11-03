@@ -1,6 +1,6 @@
 import { Box3, DynamicDrawUsage, InstancedMesh, MeshStandardMaterial, Object3D, TetrahedronGeometry, Vector3 } from 'three';
 import type { ICeilingDebris } from '../contracts/ICeilingDebris';
-import { debrisMaximumDistance, debrisMinimumDistance, debrisSectorHalfAngleDegrees } from '../contracts/debrisSpawnSettings';
+import { debrisSpawnSettings } from '../contracts/debrisSpawnSettings';
 
 export class CeilingDebris implements ICeilingDebris {
   private static readonly particleCount = 120;
@@ -54,9 +54,9 @@ export class CeilingDebris implements ICeilingDebris {
   }
 
   private selectOrigin(position: Vector3, heading: number): boolean {
-    const halfAngle = debrisSectorHalfAngleDegrees * Math.PI / 180;
+    const halfAngle = debrisSpawnSettings.sectorHalfAngleDegrees * Math.PI / 180;
     const angle = heading + (Math.random() * 2 - 1) * halfAngle;
-    const distance = debrisMinimumDistance + Math.random() * (debrisMaximumDistance - debrisMinimumDistance);
+    const distance = debrisSpawnSettings.minimumDistance + Math.random() * (debrisSpawnSettings.maximumDistance - debrisSpawnSettings.minimumDistance);
     this.origin.set(position.x + Math.sin(angle) * distance, this.ceilingHeight, position.z + Math.cos(angle) * distance);
     return this.origin.x >= this.spawnBounds.min.x && this.origin.x <= this.spawnBounds.max.x
       && this.origin.z >= this.spawnBounds.min.z && this.origin.z <= this.spawnBounds.max.z;

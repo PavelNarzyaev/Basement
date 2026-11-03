@@ -1,3 +1,7 @@
-export const debrisSectorHalfAngleDegrees = 25;
-export const debrisMinimumDistance = 7;
-export const debrisMaximumDistance = 15;
+import type { IDebrisSpawnSettings } from './IDebrisSpawnSettings';
+
+export const debrisSpawnSettings: IDebrisSpawnSettings = {
+  sectorHalfAngleDegrees: 25,
+  minimumDistance: 7,
+  maximumDistance: 15,
+};

@@ -6,10 +6,9 @@ import type { IYawBoxCollision } from '../contracts/IYawBoxCollision';
 import type { YawBoxDto } from '../contracts/YawBoxDto';
 import { CollisionDto } from '../contracts/CollisionDto';
 import { RayHitDto } from '../contracts/RayHitDto';
+import { yawBoxCollisionSettings } from '../contracts/yawBoxCollisionSettings';
 
 export class YawBoxCollision implements IYawBoxCollision {
-  private static readonly contactInset = 0.00001;
-  private static readonly minimumNormalDistance = 0.000001;
   private readonly up = new Vector3(0, 1, 0);
   private readonly localBox = new Box3();
   private readonly localTriangle = new Triangle();
@@ -22,7 +21,7 @@ export class YawBoxCollision implements IYawBoxCollision {
 
   intersectsBox(first: YawBoxDto, second: YawBoxDto): boolean {
     this.firstBox.center.copy(first.center);
-    this.firstBox.halfSize.copy(first.halfSize).addScalar(-YawBoxCollision.contactInset);
+    this.firstBox.halfSize.copy(first.halfSize).addScalar(-yawBoxCollisionSettings.contactInset);
     this.firstBox.rotation.setFromMatrix4(this.rotation.makeRotationY(first.rotationY));
     this.secondBox.center.copy(second.center);
     this.secondBox.halfSize.copy(second.halfSize);
@@ -44,7 +43,7 @@ export class YawBoxCollision implements IYawBoxCollision {
   }
 
   intersectsTriangle(box: YawBoxDto, triangle: Triangle): boolean {
-    this.setLocalBox(box, YawBoxCollision.contactInset);
+    this.setLocalBox(box, yawBoxCollisionSettings.contactInset);
     this.toLocal(triangle.a, box, this.localTriangle.a);
     this.toLocal(triangle.b, box, this.localTriangle.b);
     this.toLocal(triangle.c, box, this.localTriangle.c);
@@ -62,7 +61,7 @@ export class YawBoxCollision implements IYawBoxCollision {
     const distance = this.point.length();
     if (distance >= capsule.radius) return false;
     let depth = capsule.radius - distance;
-    if (distance > YawBoxCollision.minimumNormalDistance) {
+    if (distance > yawBoxCollisionSettings.minimumNormalDistance) {
       this.point.divideScalar(distance);
     } else {
       const startHeight = capsule.start.y - box.center.y;
